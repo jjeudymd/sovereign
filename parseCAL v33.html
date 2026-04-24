@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Outlook Calendar Scrape v3.3</title>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --pane-bg: #2d2d2d;
+            --border: #404040;
+            --text: #e0e0e0;
+            --accent: #0078d4;
+            --footer-bg: #4a4a4a;
+            --success-text: #f1c40f;
+            --drop-text: #ffffff;
+        }
+
+        body.light-theme {
+            --bg: #f3f2f1;
+            --pane-bg: #ffffff;
+            --border: #edebe9;
+            --text: #323130;
+            --footer-bg: #d2d2d2;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--text);
+            transition: background 0.3s;
+        }
+
+        header {
+            background: #000;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-bar { padding: 15px; }
+
+        #drop-zone {
+            border: 2px solid var(--accent);
+            padding: 40px;
+            text-align: center;
+            background: var(--accent);
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--drop-text);
+            font-weight: 600;
+            font-size: 1.1em;
+            transition: 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        #drop-zone.hover { filter: brightness(1.2); transform: translateY(-1px); }
+
+        .notification {
+            margin: 0 15px 15px;
+            padding: 12px;
+            background: var(--pane-bg);
+            border-left: 4px solid var(--accent);
+            display: none;
+            font-size: 14px;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            padding: 0 15px 15px;
+            gap: 15px;
+        }
+
+        .pane {
+            flex: 1;
+            display: flex; flex-direction: column;
+            background: var(--pane-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+
+        .pane-label {
+            padding: 8px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            font-weight: bold;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        textarea {
+            flex: 1; border: none; padding: 12px;
+            font-family: 'Consolas', monospace; font-size: 12px;
+            background: transparent; color: var(--text);
+            resize: none; outline: none;
+        }
+
+        footer {
+            padding: 15px 25px;
+            background: var(--footer-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stats-text { font-weight: normal; color: var(--text); }
+        .parsed-count { color: var(--success-text); font-weight: bold; font-size: 1.2em; }
+
+        button {
+            background: var(--accent);
+            color: white; border: none;
+            padding: 10px 25px; border-radius: 4px;
+            cursor: pointer; font-weight: 600;
+        }
+
+        button.theme-btn { background: #333; font-size: 12px; }
+        button:hover { filter: brightness(1.1); }
+        button:disabled { background: #666; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<header>
+    <span><strong>Outlook Calendar Scrape</strong> <small>v3.3</small></span>
+    <button class="theme-btn" onclick="document.body.classList.toggle('light-theme')">Toggle Theme</button>
+</header>
+
+<div class="top-bar">
+    <div id="drop-zone">DRAG & DROP OUTLOOK FILE HERE OR PASTE SOURCE CODE BELOW</div>
+</div>
+
+<div id="range-note" class="notification"></div>
+
+<div class="container">
+    <div class="pane">
+        <div class="pane-label">Source HTML</div>
+        <textarea id="html-in" placeholder="Paste source code here..."></textarea>
+    </div>
+    <div class="pane">
+        <div class="pane-label">Parsed CSV Preview</div>
+        <textarea id="csv-out" readonly placeholder="CSV output will appear here..."></textarea>
+    </div>
+</div>
+
+<footer>
+    <div class="stats-text">Total Events Parsed: <span class="parsed-count" id="count">0</span></div>
+    <button id="save-btn" disabled onclick="downloadCSV()">Save CSV</button>
+</footer>
+
+<script>
+    const input = document.getElementById('html-in');
+    const output = document.getElementById('csv-out');
+    const note = document.getElementById('range-note');
+    const saveBtn = document.getElementById('save-btn');
+    const countEl = document.getElementById('count');
+    const zone = document.getElementById('drop-zone');
+    
+    let currentRange = "0000-0000";
+
+    zone.ondragover = e => { e.preventDefault(); zone.classList.add('hover'); };
+    zone.ondragleave = () => zone.classList.remove('hover');
+    zone.ondrop = e => {
+        e.preventDefault();
+        zone.classList.remove('hover');
+        const file = e.dataTransfer.files[0];
+        const reader = new FileReader();
+        reader.onload = r => { input.value = r.target.result; parse(); };
+        reader.readAsText(file);
+    };
+
+    input.oninput = parse;
+
+    function parse() {
+        const doc = new DOMParser().parseFromString(input.value, 'text/html');
+        const elements = doc.querySelectorAll('[aria-label]');
+        let finalData = [];
+        const seenKeys = new Set();
+
+        const regex = /(.+?),\s(\d{1,2}:\d{2}\s[APM]{2}\sto\s\d{1,2}:\d{2}\s[APM]{2}|all\sday\sevent),\s(.+?,\s[A-Za-z]+\s\d{1,2},\s\d{4})(?:\suntil\s(.+?,\s[A-Za-z]+\s\d{1,2},\s\d{4}))?/;
+
+        elements.forEach(el => {
+            const label = el.getAttribute('aria-label');
+            const match = label ? label.match(regex) : null;
+
+            if (match) {
+                const name = match[1].trim();
+                const timeStr = match[2].trim();
+                const startDate = new Date(match[3].trim());
+                const endDate = match[4] ? new Date(match[4].trim()) : startDate;
+
+                if (isNaN(startDate)) return;
+
+                let iterDate = new Date(startDate);
+                while (iterDate <= endDate) {
+                    const dateFormatted = iterDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    const uniqueKey = `${name}|${timeStr}|${dateFormatted}`;
+
+                    if (!seenKeys.has(uniqueKey)) {
+                        let online = "NO";
+                        const content = (label + el.innerHTML).toLowerCase();
+                        if (content.includes('zoom.us')) online = "Zoom";
+                        else if (content.includes('teams.microsoft.com')) online = "MTeams";
+                        else if (content.includes('webex.com')) online = "WebEx";
+
+                        finalData.push({
+                            dateObj: new Date(iterDate),
+                            dateStr: dateFormatted,
+                            time: timeStr.replace(" to ", " - "),
+                            name: name,
+                            online: online
+                        });
+                        seenKeys.add(uniqueKey);
+                    }
+                    iterDate.setDate(iterDate.getDate() + 1);
+                }
+            }
+        });
+
+        if (finalData.length > 0) {
+            finalData.sort((a, b) => a.dateObj - b.dateObj);
+            
+            const mmdd = d => ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+            currentRange = `${mmdd(finalData[0].dateObj)}-${mmdd(finalData[finalData.length - 1].dateObj)}`;
+
+            note.style.display = 'block';
+            note.innerHTML = `<strong>Active Date Range:</strong> ${finalData[0].dateObj.toDateString()} — ${finalData[finalData.length - 1].dateObj.toDateString()}`;
+            countEl.innerText = finalData.length;
+
+            let csv = "Date,Time,Event Name,Online\n";
+            finalData.forEach(r => {
+                csv += `"${r.dateStr}","${r.time}","${r.name.replace(/"/g, '""')}","${r.online}"\n`;
+            });
+            output.value = csv;
+            saveBtn.disabled = false;
+        } else {
+            output.value = "";
+            note.style.display = 'none';
+            countEl.innerText = "0";
+            saveBtn.disabled = true;
+        }
+    }
+
+    function downloadCSV() {
+        const blob = new Blob([output.value], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `26_calCSV_${currentRange}.csv`;
+        a.click();
+    }
+</script>
+</body>
+</html>
