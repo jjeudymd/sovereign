@@ -3,194 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conference Hub</title>
+    <title>Conference Schedule Hub</title>
+    <!-- QR Code Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        :root { --primary: #1a1a1a; --secondary: #4a90e2; --bg: #ffffff; --text-main: #2c3e50; --past: #bdc3c7; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f9f9f9; margin: 0; color: var(--text-main); }
+        :root { --primary: #121212; --accent: #007bff; --bg: #ffffff; --card-bg: #ffffff; --text: #333; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; margin: 0; color: var(--text); -webkit-font-smoothing: antialiased; }
         
-        header { background: white; border-bottom: 1px solid #eee; padding: 12px 20px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .back-icon { cursor: pointer; font-size: 20px; margin-right: 15px; color: var(--primary); font-weight: 300; display: none; }
-        header h1 { margin: 0; font-size: 1rem; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+        /* Header */
+        header { background: var(--bg); border-bottom: 1px solid #eaeaea; padding: 15px 20px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; height: 30px; }
+        .back-btn { cursor: pointer; font-size: 24px; margin-right: 15px; display: none; color: var(--primary); transition: opacity 0.2s; }
+        .back-btn:hover { opacity: 0.6; }
+        header h1 { margin: 0; font-size: 0.9rem; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: var(--primary); flex-grow: 1; text-align: center; }
 
         .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
-        .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); border: 1px solid #eee; }
 
-        /* List View */
-        .day-row { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: 0.2s; }
-        .day-row.is-past { opacity: 0.5; filter: grayscale(1); }
-        .calendar-icon { font-size: 22px; margin-right: 15px; color: var(--secondary); opacity: 0.8; }
+        /* Weekly List View */
+        .day-row { display: flex; align-items: center; padding: 18px 0; border-bottom: 1px solid #f2f2f2; cursor: pointer; }
+        .day-row:last-child { border-bottom: none; }
+        .calendar-icon { font-size: 24px; margin-right: 20px; color: #999; }
         .day-info { flex-grow: 1; overflow: hidden; }
-        .day-name { font-weight: 700; font-size: 0.95rem; color: var(--primary); text-transform: uppercase; }
-        .preview-text { font-size: 0.85rem; color: #7f8c8d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .day-name { font-weight: 700; color: var(--primary); font-size: 1rem; margin-bottom: 4px; }
+        .preview-text { font-size: 0.85rem; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* Detail View */
+        /* Daily Detailed View */
         #dayView { text-align: center; display: none; }
-        .toggle-container { display: flex; justify-content: center; border: 1px solid #eee; border-radius: 25px; margin-bottom: 25px; overflow: hidden; }
-        .toggle-container button { flex: 1; padding: 10px; border: none; background: white; color: #7f8c8d; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        .toggle-container button.active { background: var(--primary); color: white; }
+        .toggle-group { display: flex; background: #f0f0f0; border-radius: 30px; padding: 4px; margin-bottom: 30px; }
+        .toggle-group button { flex: 1; border: none; background: none; padding: 10px; font-weight: 700; font-size: 0.75rem; color: #777; cursor: pointer; border-radius: 25px; transition: 0.2s; }
+        .toggle-group button.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         
-        .lecture-title { font-size: 1.2rem; margin: 20px 0; line-height: 1.4; font-weight: 600; }
-        #qrcode { margin: 20px 0; padding: 10px; border: 1px solid #f0f0f0; display: inline-block; }
-        .info-panel { text-align: left; background: #fafafa; border-radius: 6px; padding: 15px; font-size: 0.9rem; }
-        .zoom-link { color: var(--secondary); text-decoration: none; word-break: break-all; display: block; margin-bottom: 8px; font-weight: 500; }
+        .lecture-title { font-size: 1.3rem; font-weight: 800; color: #111; margin: 20px 0; line-height: 1.3; }
+        #qrcode { background: white; padding: 10px; display: inline-block; border: 1px solid #eee; margin: 15px 0; }
         
-        #status { text-align: center; margin-top: 50px; font-size: 0.9rem; color: #95a5a6; }
+        .info-panel { text-align: left; background: #fbfbfb; border-radius: 8px; padding: 20px; margin-top: 15px; font-size: 0.9rem; border: 1px solid #f0f0f0; }
+        .zoom-link { color: var(--accent); text-decoration: none; word-break: break-all; font-weight: 600; display: block; margin-bottom: 12px; }
+        .meeting-creds { color: #555; margin: 0; line-height: 1.5; font-family: monospace; }
+
+        #status { text-align: center; margin-top: 100px; color: #aaa; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
 <header>
-    <div id="backBtn" class="back-icon" onclick="showHome()">✕</div>
-    <h1 id="headerTitle">Conference Hub</h1>
+    <div id="backIcon" class="back-btn" onclick="showHome()">←</div>
+    <h1 id="headerTitle">Conference Schedule</h1>
 </header>
 
 <div class="container">
-    <div id="status">Syncing schedule...</div>
+    <div id="status">Updating data...</div>
 
+    <!-- LIST OF ALL DAYS -->
     <div id="homeView" class="card" style="display:none;">
         <div id="weeklyList"></div>
     </div>
 
+    <!-- DETAILED SESSION VIEW -->
     <div id="dayView" class="card">
-        <div class="toggle-container">
-            <button id="amBtn" onclick="toggleSession('AM')">AM SESSION</button>
-            <button id="pmBtn" onclick="toggleSession('PM')">PM SESSION</button>
+        <div class="toggle-group">
+            <button id="amBtn" onclick="setSession('AM')">AM SESSION</button>
+            <button id="pmBtn" onclick="setSession('PM')">PM SESSION</button>
         </div>
-        <div id="currentDayLabel" style="font-size: 0.8rem; color: #bdc3c7; font-weight: 700;"></div>
+        <div id="dateLabel" style="font-size: 0.8rem; color: #bbb; font-weight: 700; letter-spacing: 1px;"></div>
         <div id="titleDisplay" class="lecture-title"></div>
         <div id="qrcode"></div>
         <div class="info-panel">
             <a id="urlDisplay" href="#" target="_blank" class="zoom-link"></a>
-            <div id="credsDisplay" style="color: #34495e;"></div>
+            <p id="credsDisplay" class="meeting-creds"></p>
         </div>
     </div>
 </div>
 
 <script>
     const SHEET_ID = '1gNy8iWiCZ8t-A_CYoIfBCJqJUrqwiByhzJ0-e0df9as';
-    const GID = '0'; 
+    const GID = '0'; // Tab: "This Week"
     const DATA_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${GID}`;
 
-    let scheduleData = [];
-    let activeDayIndex = 0;
-    let activeSession = 'AM';
-    let qrGen = new QRCode(document.getElementById("qrcode"), { width: 200, height: 200 });
+    let schedule = [];
+    let currentIdx = 0;
+    let qr = new QRCode(document.getElementById("qrcode"), { width: 240, height: 240 });
 
-    async function loadData() {
+    async function initApp() {
         try {
-            const response = await fetch(DATA_URL);
-            const text = await response.text();
+            const res = await fetch(DATA_URL);
+            const text = await res.text();
             const json = JSON.parse(text.substr(47).slice(0, -2));
             const rows = json.table.rows;
 
-            scheduleData = rows.slice(2).map(r => {
-                const rawDate = r.c[0] ? r.c[0].v : null;
-                return {
-                    dateObj: parseDate(rawDate),
-                    formattedDate: formatDate(rawDate),
-                    AM: parseSession(r.c[2] ? r.c[2].v : ""),
-                    PM: parseSession(r.c[4] ? r.c[4].v : "")
-                };
-            }).filter(d => d.dateObj !== null);
+            // Mapping: Column A (0) is Date, Column C (2) is AM content, Column E (4) is PM content
+            schedule = rows.slice(2).map(r => ({
+                rawDate: r.c[0] ? r.c[0].v : null,
+                formattedDate: formatScheduleDate(r.c[0] ? r.c[0].v : null),
+                AM: parseCellData(r.c[2] ? r.c[2].v : ""),
+                PM: parseCellData(r.c[4] ? r.c[4].v : "")
+            })).filter(d => d.rawDate !== null);
 
-            renderList();
+            renderWeeklyList();
             document.getElementById('status').style.display = 'none';
             document.getElementById('homeView').style.display = 'block';
         } catch (e) {
-            document.getElementById('status').innerText = "Unable to connect to schedule.";
+            document.getElementById('status').innerText = "Failed to sync schedule. Check connection.";
         }
     }
 
-    function parseDate(val) {
-        if (!val) return null;
-        // Handles "Date(2026,4,18)" format from Google JSON
-        if (typeof val === 'string' && val.includes('Date')) {
-            const parts = val.match(/\d+/g);
-            return new Date(parts[0], parts[1], parts[2]);
-        }
-        return new Date(val);
+    function formatScheduleDate(val) {
+        if (!val) return "";
+        // Google JSON date format is "Date(YYYY, M, D)" where M is 0-indexed
+        const d = new Date(val.match(/\d+/g)[0], val.match(/\d+/g)[1], val.match(/\d+/g)[2]);
+        const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        const dayName = dayNames[d.getDay()];
+        const monthName = monthNames[d.getMonth()];
+        const dayNum = String(d.getDate()).padStart(2, '0');
+        
+        return `${dayName}, ${monthName} ${dayNum}`;
     }
 
-    function formatDate(val) {
-        const d = parseDate(val);
-        const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return `${days[d.getDay()]}, ${months[d.getMonth()]} ${String(d.getDate()).padStart(2, '0')}`;
-    }
-
-    function parseSession(text) {
+    function parseCellData(text) {
         if (!text || text.toLowerCase().includes("no conference")) {
-            return { title: "No Conference", url: "", info: "", isPast: false };
+            return { title: "No Conference", url: "", info: "" };
         }
         const lines = text.split('\n');
         const urlMatch = text.match(/https?:\/\/[^\s]+/);
+        const info = lines.filter(l => l.includes("ID") || l.includes("Passcode")).join(" | ");
         return { 
             title: lines[0].trim(), 
             url: urlMatch ? urlMatch[0] : "", 
-            info: lines.filter(l => l.includes("ID") || l.includes("Passcode")).join(" | ")
+            info: info 
         };
     }
 
-    function renderList() {
+    function renderWeeklyList() {
         const list = document.getElementById('weeklyList');
-        const now = new Date();
         list.innerHTML = '';
-        
-        scheduleData.forEach((day, index) => {
-            const isPastDay = day.dateObj.setHours(0,0,0,0) < now.setHours(0,0,0,0);
+        schedule.forEach((day, index) => {
             const row = document.createElement('div');
-            row.className = `day-row ${isPastDay ? 'is-past' : ''}`;
-            row.onclick = () => openDay(index);
+            row.className = 'day-row';
+            row.onclick = () => openDayView(index);
             row.innerHTML = `
                 <div class="calendar-icon">📅</div>
                 <div class="day-info">
                     <div class="day-name">${day.formattedDate}</div>
-                    <div class="preview-text">${day.AM.title} / ${day.PM.title}</div>
+                    <div class="preview-text">AM: ${day.AM.title} | PM: ${day.PM.title}</div>
                 </div>
             `;
             list.appendChild(row);
         });
     }
 
-    function openDay(index) {
-        activeDayIndex = index;
+    function openDayView(index) {
+        currentIdx = index;
         document.getElementById('homeView').style.display = 'none';
         document.getElementById('dayView').style.display = 'block';
-        document.getElementById('backBtn').style.display = 'block';
-        toggleSession('AM');
+        document.getElementById('backIcon').style.display = 'block';
+        document.getElementById('headerTitle').innerText = "Session Details";
+        setSession('AM');
     }
 
     function showHome() {
         document.getElementById('homeView').style.display = 'block';
         document.getElementById('dayView').style.display = 'none';
-        document.getElementById('backBtn').style.display = 'none';
+        document.getElementById('backIcon').style.display = 'none';
+        document.getElementById('headerTitle').innerText = "Conference Schedule";
     }
 
-    function toggleSession(type) {
-        activeSession = type;
+    function setSession(type) {
         document.getElementById('amBtn').classList.toggle('active', type === 'AM');
         document.getElementById('pmBtn').classList.toggle('active', type === 'PM');
         
-        const day = scheduleData[activeDayIndex];
-        const session = day[type];
+        const day = schedule[currentIdx];
+        const data = day[type];
         
-        document.getElementById('currentDayLabel').innerText = day.formattedDate;
-        document.getElementById('titleDisplay').innerText = session.title;
-        document.getElementById('urlDisplay').innerText = session.url;
-        document.getElementById('urlDisplay').href = session.url;
-        document.getElementById('credsDisplay').innerText = session.info;
+        document.getElementById('dateLabel').innerText = day.formattedDate;
+        document.getElementById('titleDisplay').innerText = data.title;
+        document.getElementById('urlDisplay').innerText = data.url;
+        document.getElementById('urlDisplay').href = data.url;
+        document.getElementById('credsDisplay').innerText = data.info;
 
-        qrGen.clear();
-        if (session.url) {
+        qr.clear();
+        if (data.url) {
             document.getElementById('qrcode').style.display = 'inline-block';
-            qrGen.makeCode(session.url);
+            qr.makeCode(data.url);
         } else {
             document.getElementById('qrcode').style.display = 'none';
         }
     }
 
-    loadData();
+    initApp();
 </script>
 </body>
 </html>
