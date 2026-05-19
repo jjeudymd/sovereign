@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Conference Schedule</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root { --primary: #004a99; --secondary: #007bff; --bg: #f4f7f9; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg); margin: 0; padding: 0; }
+        
+        header { background: var(--primary); color: white; padding: 15px 20px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        header .home-icon { cursor: pointer; font-size: 24px; margin-right: 15px; text-decoration: none; color: white; }
+        header h1 { margin: 0; font-size: 1.2rem; }
+
+        .container { max-width: 800px; margin: 30px auto; padding: 0 20px; }
+        .card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+        /* Weekly List View */
+        .day-option { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; }
+        .day-option:hover { background: #f0f7ff; }
+        .calendar-icon { font-size: 28px; margin-right: 20px; color: var(--primary); }
+        .day-info { flex-grow: 1; }
+        .day-name { font-weight: bold; color: var(--primary); font-size: 1.1rem; }
+        .session-preview { font-size: 0.9rem; color: #666; margin-top: 2px; }
+
+        /* Daily Detailed View */
+        #dayView { text-align: center; display: none; }
+        .toggle-bar { margin-bottom: 25px; }
+        .toggle-bar button { padding: 10px 25px; border: 2px solid var(--secondary); background: white; color: var(--secondary); font-weight: bold; cursor: pointer; border-radius: 50px; margin: 0 5px; }
+        .toggle-bar button.active { background: var(--secondary); color: white; }
+        #qrcode { background: white; padding: 15px; display: inline-block; border-radius: 10px; margin: 20px 0; border: 1px solid #ddd; }
+        .lecture-title-large { font-size: 1.4rem; color: #222; margin: 10px 0; padding: 0 10px; }
+        .detail-text { word-break: break-all; color: #555; margin-top: 15px; font-size: 0.95rem; }
+        
+        #loading { text-align: center; font-style: italic; color: #666; }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="#" class="home-icon" onclick="showHome()">🏠</a>
+    <h1 id="headerTitle">Conference Hub</h1>
+</header>
+
+<div class="container">
+    <div id="loading">Syncing with Google Sheets...</div>
+
+    <!-- WEEKLY LIST -->
+    <div id="homeView" class="card" style="display:none;">
+        <h2 style="text-align: center; margin-top: 0;">Weekly Schedule</h2>
+        <div id="weeklyList"></div>
+    </div>
+
+    <!-- DAILY DETAILED VIEW -->
+    <div id="dayView" class="card">
+        <div class="toggle-bar">
+            <button id="amBtn" onclick="setSession('AM')">AM Session</button>
+            <button id="pmBtn" onclick="setSession('PM')">PM Session</button>
+        </div>
+        <h2 id="displayDate" style="color: #666; margin-bottom: 5px;"></h2>
+        <div id="displayTitle" class="lecture-title-large"></div>
+        <div id="qrcode"></div>
+        <div class="detail-text">
+            <a id="displayUrl" href="#" target="_blank" style="color: var(--secondary); text-decoration: none; font-weight: bold;"></a>
+            <p id="displayMeeting" style="margin-top: 10px; font-weight: bold;"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // The link to your specific spreadsheet exported as CSV
+    const sheetId = '1gNy8iWiCZ8t-A_CYoIfBCJqJUrqwiByhzJ0-e0df9as';
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=This Week`;
+
+    let schedule = [];
+    let currentDayIndex = 0;
+    let currentSessionType = 'AM';
+    let qrcode = new QRCode(document.getElementById("qrcode"), { width: 220, height: 220 });
+
+    async function fetchAndParseData() {
+        try {
+            const response = await fetch(csvUrl);
+            const csvText = await response.text();
+            
+            // Simple CSV parser logic
+            const rows = csvText.split('\n').map(row => row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || []);
+            
+            // Skip headers (Rows 0-2 in your specific sheet) and map data
+            // Based on your sheet: Row 3 is Monday, Col A=Date, Col C=AM Info, Col E=PM Info
+            const parsedDays = [];
+            for (let i = 2; i < rows.length; i++) {
+                const row = rows[i].map(cell => cell.replace(/^"|"$/g, '').trim());
+                if (row.length < 5 || !row[0]) continue;
+
+                parsedDays.push({
+                    date: row[0],
+                    AM: parseCell(row[2]),
+                    PM: parseCell(row[4])
+                });
+            }
+
+            schedule = parsedDays;
+            renderWeeklyList();
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('homeView').style.display = 'block';
+        } catch (error) {
+            document.getElementById('loading').innerText = "Error loading schedule. Please check sheet permissions.";
+            console.error(error);
+        }
+    }
+
+    function parseCell(text) {
+        if (!text || text.toLowerCase().includes("no conference")) {
+            return { title: "No conference", url: "", info: "" };
+        }
+        // Extract URL using Regex
+        const urlMatch = text.match(/https?:\/\/[^\s]+/);
+        const url = urlMatch ? urlMatch[0] : "";
+        
+        // Split title from the rest (usually title is the first line or before the URL)
+        const lines = text.split('\n');
+        const title = lines[0].split('-')[0].trim(); // Get main name/topic
+        const info = lines.filter(l => l.includes("Meeting ID") || l.includes("Passcode")).join(" | ");
+
+        return { title: text.split('\n')[0], url: url, info: info };
+    }
+
+    function renderWeeklyList() {
+        const listDiv = document.getElementById('weeklyList');
+        listDiv.innerHTML = '';
+        schedule.forEach((day, index) => {
+            const div = document.createElement('div');
+            div.className = 'day-option';
+            div.onclick = () => showDay(index);
+            div.innerHTML = `
+                <div class="calendar-icon">📅</div>
+                <div class="day-info">
+                    <div class="day-name">${day.date}</div>
+                    <div class="session-preview"><b>AM:</b> ${day.AM.title.substring(0, 50)}...</div>
+                    <div class="session-preview"><b>PM:</b> ${day.PM.title.substring(0, 50)}...</div>
+                </div>
+            `;
+            listDiv.appendChild(div);
+        });
+    }
+
+    function showDay(index) {
+        currentDayIndex = index;
+        document.getElementById('homeView').style.display = 'none';
+        document.getElementById('dayView').style.display = 'block';
+        document.getElementById('headerTitle').innerText = "Daily View";
+        setSession('AM');
+    }
+
+    function showHome() {
+        document.getElementById('homeView').style.display = 'block';
+        document.getElementById('dayView').style.display = 'none';
+        document.getElementById('headerTitle').innerText = "Conference Hub";
+    }
+
+    function setSession(type) {
+        currentSessionType = type;
+        document.getElementById('amBtn').classList.toggle('active', type === 'AM');
+        document.getElementById('pmBtn').classList.toggle('active', type === 'PM');
+        
+        const dayData = schedule[currentDayIndex];
+        const session = dayData[type];
+        
+        document.getElementById('displayDate').innerText = dayData.date;
+        document.getElementById('displayTitle').innerText = session.title;
+        document.getElementById('displayUrl').innerText = session.url;
+        document.getElementById('displayUrl').href = session.url;
+        document.getElementById('displayMeeting').innerText = session.info;
+
+        qrcode.clear();
+        if (session.url) {
+            document.getElementById('qrcode').style.display = 'inline-block';
+            qrcode.makeCode(session.url);
+        } else {
+            document.getElementById('qrcode').style.display = 'none';
+        }
+    }
+
+    fetchAndParseData();
+</script>
+</body>
+</html>
