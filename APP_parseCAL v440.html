@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Outlook Calendar Scrape v4.4.0</title>
+    <style>
+        :root {
+            --bg: #1a1a1a; --pane-bg: #2d2d2d; --border: #404040;
+            --text: #e0e0e0; --accent: #0078d4; --footer-bg: #4a4a4a;
+            --success-text: #f1c40f; --drop-text: #ffffff;
+        }
+        body.light-theme {
+            --bg: #f3f2f1; --pane-bg: #ffffff; --border: #edebe9;
+            --text: #323130; --footer-bg: #d2d2d2;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0;
+            background: var(--bg); height: 100vh; display: flex;
+            flex-direction: column; color: var(--text);
+        }
+        header { background: #000; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .top-bar { padding: 15px; }
+        #drop-zone {
+            border: 2px solid var(--accent); padding: 400px; text-align: center;
+            background: var(--accent); border-radius: 8px; cursor: pointer;
+            color: var(--drop-text); font-weight: 600; font-size: 1.1em;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        .container { display: flex; flex: 1; overflow: hidden; padding: 0 15px 15px; gap: 15px; }
+        .pane { flex: 1; display: flex; flex-direction: column; background: var(--pane-bg); border: 1px solid var(--border); border-radius: 4px; }
+        .pane-label { padding: 8px; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border); font-size: 11px; font-weight: bold; color: #aaa; text-transform: uppercase; }
+        textarea { flex: 1; border: none; padding: 12px; font-family: 'Consolas', monospace; font-size: 12px; background: transparent; color: var(--text); resize: none; outline: none; }
+        footer { padding: 15px 25px; background: var(--footer-bg); display: flex; justify-content: space-between; align-items: center; }
+        .parsed-count { color: var(--success-text); font-weight: bold; font-size: 1.2em; }
+        button { background: var(--accent); color: white; border: none; padding: 10px 25px; border-radius: 4px; cursor: pointer; font-weight: 600; }
+        button.theme-btn { background: #333; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <span><strong>Outlook Calendar Scrape</strong> <small>v4.4.0</small></span>
+    <button class="theme-btn" onclick="document.body.classList.toggle('light-theme')">Toggle Theme</button>
+</header>
+
+<div class="top-bar">
+    <div id="drop-zone">DRAG & DROP OUTLOOK FILE HERE OR PASTE SOURCE CODE BELOW</div>
+</div>
+
+<div class="container">
+    <div class="pane">
+        <div class="pane-label">Source HTML</div>
+        <textarea id="html-in" placeholder="Paste source code here..."></textarea>
+    </div>
+    <div class="pane">
+        <div class="pane-label">Parsed CSV Preview</div>
+        <textarea id="csv-out" readonly placeholder="CSV output will appear here..."></textarea>
+    </div>
+</div>
+
+<footer>
+    <div>Total Events Parsed: <span class="parsed-count" id="count">0</span></div>
+    <button id="save-btn" disabled onclick="downloadCSV()">Save CSV</button>
+</footer>
+
+<script>
+    const input = document.getElementById('html-in');
+    const output = document.getElementById('csv-out');
+    const saveBtn = document.getElementById('save-btn');
+    const countEl = document.getElementById('count');
+    const zone = document.getElementById('drop-zone');
+    
+    zone.ondragover = e => { e.preventDefault(); zone.style.filter = "brightness(1.1)"; };
+    zone.ondragleave = () => zone.style.filter = "none";
+    zone.ondrop = e => {
+        e.preventDefault(); zone.style.filter = "none";
+        const file = e.dataTransfer.files[0];
+        const reader = new FileReader();
+        reader.onload = r => { input.value = r.target.result; parse(); };
+        reader.readAsText(file);
+    };
+
+    input.oninput = parse;
+
+    function parse() {
+        const doc = new DOMParser().parseFromString(input.value, 'text/html');
+        const elements = doc.querySelectorAll('[aria-label]');
+        let finalData = [];
+        const seenKeys = new Set();
+
+        elements.forEach(el => {
+            const rawLabel = el.getAttribute('aria-label');
+            if (!rawLabel) return;
+
+            // NOISE FILTER: Ignore system buttons and navigation
+            const noiseKeywords = ["Go to today", "Date selector", "Jump to", "Next day", "Previous"];
+            if (noiseKeywords.some(k => rawLabel.includes(k))) return;
+
+            // 1. THE WELD (Unify fragmented labels)
+            const label = rawLabel.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+            // 2. THE TIME ANCHOR
+            const anchorMatch = label.match(/(all\sday\sevent|\d{1,2}:\d{2}\s[APM]{2}\sto\s\d{1,2}:\d{2}\s[APM]{2})/i);
+            if (!anchorMatch) return;
+
+            const timeStr = anchorMatch[0];
+            const name = label.split(timeStr)[0].replace(/,$/, '').trim();
+            const dateZone = label.split(timeStr)[1].trim();
+
+            let startDateStr = "";
+            let endDateStr = "";
+
+            // 3. IMPROVED RANGE DETECTION (Matches "until" OR "to")
+            // Regex checks for a 4-digit year followed by "until" or "to"
+            const rangeMatch = dateZone.match(/\d{4}\s+(until|to)\s+/i);
+
+            if (rangeMatch) {
+                const delimiterWord = rangeMatch[1]; // "until" or "to"
+                const rangeParts = dateZone.split(new RegExp(`\\s${delimiterWord}\\s`, 'i'));
+                
+                startDateStr = rangeParts[0].replace(/^,/, '').trim();
+                
+                // End Date: Take 3 comma-separated chunks to avoid "Busy", "Organizer", etc.
+                const endPartRaw = rangeParts[1].trim();
+                const endParts = endPartRaw.split(',').map(p => p.trim());
+                endDateStr = `${endParts[0]}, ${endParts[1]}, ${endParts[2]}`;
+            } else {
+                // Single Day Logic
+                const dateParts = dateZone.replace(/^,/, '').split(',').map(p => p.trim());
+                startDateStr = `${dateParts[0]}, ${dateParts[1]}, ${dateParts[2]}`;
+                endDateStr = startDateStr;
+            }
+
+            const startDate = new Date(startDateStr);
+            const endDate = new Date(endDateStr);
+
+            if (isNaN(startDate.getTime())) return;
+
+            // Extra Parameters
+            const isRecurring = el.innerHTML.toLowerCase().includes('arrowrepeat') || label.toLowerCase().includes('repeating') ? "YES" : "NO";
+            let online = "NO";
+            if (el.innerHTML.toLowerCase().includes('zoom.us')) online = "Zoom";
+            else if (el.innerHTML.toLowerCase().includes('teams.microsoft.com')) online = "Teams";
+
+            // 4. DATE EXPLOSION
+            let iterDate = new Date(startDate);
+            while (iterDate <= endDate) {
+                const dateDisplay = iterDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const uniqueKey = `${name}|${timeStr}|${dateDisplay}`;
+
+                if (!seenKeys.has(uniqueKey)) {
+                    finalData.push({
+                        sortDate: new Date(iterDate),
+                        displayDate: dateDisplay,
+                        time: timeStr.replace(/ to /i, " - "),
+                        start: startDateStr,
+                        end: endDateStr,
+                        name: name,
+                        online: online,
+                        recurring: isRecurring
+                    });
+                    seenKeys.add(uniqueKey);
+                }
+                iterDate.setDate(iterDate.getDate() + 1);
+                
+                // Safety break for extreme ranges
+                if (finalData.length > 5000) break;
+            }
+        });
+
+        if (finalData.length > 0) {
+            finalData.sort((a, b) => a.sortDate - b.sortDate);
+            countEl.innerText = finalData.length;
+            let csv = "Date,Time,Start Date,End Date,Event Name,Online,Recurring\n";
+            finalData.forEach(r => {
+                csv += `"${r.displayDate}","${r.time}","${r.start}","${r.end}","${r.name.replace(/"/g, '""')}","${r.online}","${r.recurring}"\n`;
+            });
+            output.value = csv;
+            saveBtn.disabled = false;
+        } else {
+            output.value = "";
+            countEl.innerText = "0";
+            saveBtn.disabled = true;
+        }
+    }
+
+    function downloadCSV() {
+        const blob = new Blob([output.value], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const timestamp = new Date().toISOString().slice(0,10);
+        a.download = `outlook_export_${timestamp}.csv`;
+        a.click();
+    }
+</script>
+</body>
+</html>
