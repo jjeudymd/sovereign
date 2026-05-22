@@ -1,0 +1,1608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>NOTESREP v1.4.0</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#090e1a;--surface:#0f172a;--panel:#141e33;--card:#1a2642;
+  --border:#243050;--border2:#2e3f60;
+  --blue:#3b82f6;--blue2:#60a5fa;
+  --green:#22d3ee;--amber:#f59e0b;--red:#f87171;--purple:#a78bfa;
+  --muted:#64748b;--text:#cbd5e1;--text2:#94a3b8;--white:#f1f5f9;
+  --topbar-h:46px;
+}
+html,body{height:100%;background:var(--navy);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;}
+/* TOPBAR */
+#topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;z-index:100;}
+.tbar-logo{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--white);letter-spacing:.06em;padding:0 18px;border-right:1px solid var(--border);height:100%;display:flex;align-items:center;gap:8px;white-space:nowrap;flex-shrink:0;}
+.tbar-logo span{color:var(--blue2);}
+.tver{font-size:9px;background:var(--border);color:var(--blue2);padding:2px 7px;border-radius:3px;letter-spacing:.08em;}
+.tbar-views{display:flex;align-items:center;height:100%;border-right:1px solid var(--border);flex-shrink:0;}
+.tstats{display:flex;align-items:center;height:100%;border-right:1px solid var(--border);flex-shrink:0;}
+.tstat{padding:0 11px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);border-right:1px solid var(--border);height:100%;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+.tstat:last-child{border-right:none;}
+.sv{font-weight:600;color:var(--text);}
+.sv.ok{color:var(--green);}.sv.warn{color:var(--amber);}
+.tactions{display:flex;align-items:center;height:100%;margin-left:auto;flex-shrink:0;position:relative;}
+.tbtn{height:100%;padding:0 13px;border:none;background:transparent;color:var(--text2);font-size:11px;font-family:'IBM Plex Mono',monospace;letter-spacing:.05em;cursor:pointer;border-left:1px solid var(--border);transition:background .15s,color .15s;white-space:nowrap;}
+.tbtn:hover{background:var(--panel);color:var(--blue2);}
+.tbtn.ac{color:var(--blue2);}
+.tbtn.on{color:var(--blue2);background:var(--panel);}
+.tbtn:disabled{opacity:.4;cursor:not-allowed;}
+/* export dropdown */
+.exp-wrap{position:relative;height:100%;display:flex;align-items:center;}
+.exp-menu{display:none;position:absolute;top:100%;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:5px;min-width:180px;z-index:200;box-shadow:0 4px 16px #00000055;overflow:hidden;}
+.exp-menu.show{display:block;}
+.exp-item{padding:8px 14px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.exp-item:last-child{border-bottom:none;}
+.exp-item:hover{background:var(--card);color:var(--blue2);}
+.exp-item.disabled{opacity:.4;cursor:not-allowed;}
+/* WORKSPACE */
+#ws{position:fixed;top:var(--topbar-h);left:0;right:0;bottom:80px;display:flex;overflow:hidden;}
+/* LEFT PANE */
+#recPane{width:264px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;}
+.phdr{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ptitle{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.pcnt{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--blue2);background:var(--card);padding:2px 7px;border-radius:3px;}
+.pfilter{padding:5px 8px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:4px;flex-shrink:0;}
+.pfilter-row{display:flex;gap:5px;align-items:center;}
+.fin{flex:1;min-width:0;background:var(--navy);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 7px;outline:none;}
+.fin:focus{border-color:var(--blue2);}
+.tf-chip{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 7px;border-radius:10px;border:1px solid var(--blue);color:var(--blue2);background:#1e3a5f44;cursor:pointer;display:none;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0;}
+.tf-chip.show{display:flex;}
+.sort-btns{display:flex;gap:2px;}
+.sbtn{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;white-space:nowrap;}
+.sbtn:hover{color:var(--text2);}
+.sbtn.on{border-color:var(--blue2);color:var(--blue2);background:#1e3a5f33;}
+#recList{flex:1;overflow-y:auto;min-height:0;}
+/* record items */
+.ri{padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;animation:fadeUp .15s ease both;position:relative;}
+.ri:hover{background:var(--panel);}
+.ri.act{background:var(--card);border-left:2px solid var(--blue);padding-left:10px;}
+.ri.thi{background:#0f1f38;border-left:2px solid var(--purple);padding-left:10px;}
+.ri.act.thi{background:var(--card);border-left:2px solid var(--blue);}
+.ri-t{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--white);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:18px;}
+.ri-m{font-size:10px;color:var(--muted);display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
+.badge{font-size:8px;font-family:'IBM Plex Mono',monospace;padding:1px 5px;border-radius:2px;border:1px solid;flex-shrink:0;}
+.b-csv{color:#60a5fa;border-color:#1e3a8a;background:#040c1e;}
+.b-txt{color:#6ee7b7;border-color:#065f46;background:#021a11;}
+.b-jsn{color:#a78bfa;border-color:#4c1d95;background:#0d0720;}
+.b-sn{color:#f59e0b;border-color:#78350f;background:#1c1008;}
+.b-typ{color:var(--text2);border-color:var(--border);background:transparent;}
+.b-new{color:var(--amber);border-color:#78350f;background:#1c1008;font-size:8px;}
+.qdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;display:inline-block;}
+.q-hi{background:var(--green);}
+.q-md{background:var(--amber);}
+.q-lo{background:var(--red);}
+.ri-tags{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px;}
+.rtag{font-size:8px;font-family:'IBM Plex Mono',monospace;padding:1px 5px;border-radius:10px;border:1px solid #4c1d95;color:#c4b5fd;background:#0d0720;cursor:pointer;}
+.rtag:hover{border-color:var(--purple);}
+.ri-del{position:absolute;top:8px;right:6px;background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 4px;border-radius:3px;opacity:0;}
+.ri:hover .ri-del{opacity:1;}
+.ri-del:hover{color:var(--red);}
+/* CENTER PANE */
+#detPane{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:var(--navy);}
+.dhdr{padding:10px 18px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;display:flex;align-items:center;gap:10px;}
+.dt-in{flex:1;background:transparent;border:none;color:var(--white);font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;outline:none;min-width:0;}
+.dt-in::placeholder{color:var(--muted);}
+.case-btn{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9px;padding:2px 5px;line-height:1;flex-shrink:0;}
+.case-btn:hover{border-color:var(--blue2);color:var(--blue2);}
+.dscroll{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;}
+/* collapsible section */
+.cs{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+.cs-hdr{padding:7px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.cs-hdr:hover{background:#ffffff06;}
+.cs-hl{display:flex;align-items:center;gap:8px;}
+.cs-ti{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.cs-ba{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--blue2);background:var(--card);padding:1px 6px;border-radius:3px;}
+.cs-ch{font-size:10px;color:var(--muted);transition:transform .2s;flex-shrink:0;}
+.cs.coll .cs-ch{transform:rotate(-90deg);}
+.cs-bd{padding:10px 12px;display:flex;flex-direction:column;gap:7px;border-top:1px solid var(--border);}
+.cs.coll .cs-bd{display:none;}
+/* fields */
+.fr{display:flex;gap:10px;align-items:flex-start;}
+.fl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);min-width:86px;padding-top:5px;flex-shrink:0;}
+.fv{flex:1;min-width:0;}
+.fi{width:100%;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;outline:none;}
+.fi:focus{border-color:var(--blue);}
+.fs{background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;outline:none;cursor:pointer;width:100%;}
+.fs:focus{border-color:var(--blue);}
+.fck{display:flex;align-items:center;gap:8px;padding:3px 0;}
+.fck label{font-size:11px;color:var(--text2);cursor:pointer;}
+.fck input[type=checkbox]{accent-color:var(--blue2);cursor:pointer;}
+input[type="date"]{color-scheme:dark;}
+input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.5) sepia(1) saturate(2) hue-rotate(190deg);cursor:pointer;opacity:.7;}
+/* tags */
+.tw{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:3px 0;min-height:28px;cursor:text;}
+.tpill{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 7px;border-radius:10px;border:1px solid #4c1d95;color:#c4b5fd;background:#0d0720;display:inline-flex;align-items:center;gap:4px;}
+.tx{cursor:pointer;opacity:.5;}
+.tx:hover{opacity:1;color:var(--red);}
+.tin{background:transparent;border:none;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;width:80px;min-width:30px;}
+.tin::placeholder{color:var(--muted);}
+.tsug{position:absolute;background:var(--surface);border:1px solid var(--border2);border-radius:4px;z-index:50;min-width:140px;max-height:140px;overflow-y:auto;box-shadow:0 4px 16px #00000066;display:none;}
+.tsi{padding:5px 10px;cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text2);}
+.tsi:hover{background:var(--card);color:var(--blue2);}
+/* attendees — FIXED: flex-wrap, min-width:0, no truncation */
+.al{display:flex;flex-direction:column;gap:5px;}
+.ar{display:flex;gap:5px;align-items:flex-start;flex-wrap:wrap;}
+.anw{flex:2;min-width:120px;position:relative;}
+.ani{width:100%;background:var(--card);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 7px;outline:none;}
+.ani:focus{border-color:var(--blue);}
+.ari{flex:3;min-width:100px;background:var(--card);border:1px solid var(--border);border-radius:3px;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 7px;outline:none;}
+.ari:focus{border-color:var(--blue);}
+.adel{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 5px;flex-shrink:0;margin-top:2px;}
+.adel:hover{color:var(--red);}
+.cdrop{position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:4px;z-index:200;max-height:160px;overflow-y:auto;box-shadow:0 4px 16px #00000066;display:none;}
+.cdrop.show{display:block;}
+.cdi{padding:5px 9px;cursor:pointer;border-bottom:1px solid var(--border);}
+.cdi:last-child{border-bottom:none;}
+.cdi:hover{background:var(--card);}
+.cdn{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);}
+.cdm{font-size:10px;color:var(--muted);margin-top:1px;}
+/* action items — FIXED: flex-wrap on row, min-width:0 on text */
+.acl{display:flex;flex-direction:column;gap:4px;}
+.acr{display:flex;gap:5px;align-items:flex-start;padding:4px 5px;border-radius:4px;border:1px solid transparent;flex-wrap:wrap;}
+.acr:hover{border-color:var(--border);}
+.acr.sov{border-left:2px solid var(--blue2);}
+.aown{width:76px;flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:3px;color:var(--blue2);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 5px;outline:none;}
+.aown:focus{border-color:var(--blue);}
+.aown.oth{color:var(--text2);}
+.atxt{flex:1;min-width:160px;background:var(--card);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 7px;outline:none;resize:none;min-height:44px;line-height:1.55;}
+.atxt:focus{border-color:var(--blue);}
+.adl{width:100px;flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:3px;color:var(--amber);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 5px;outline:none;}
+.adl::-webkit-calendar-picker-indicator{filter:invert(.6) sepia(1) saturate(3) hue-rotate(5deg);cursor:pointer;opacity:.7;}
+.adl:focus{border-color:var(--amber);}
+.adnote{width:88px;flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:3px;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 5px;outline:none;font-style:italic;}
+.adnote:focus{border-color:var(--border2);}
+.ats{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 3px;margin-top:2px;flex-shrink:0;}
+.ats.on{color:var(--red);}
+.axd{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 3px;margin-top:2px;flex-shrink:0;}
+.axd:hover{color:var(--red);}
+.addrow{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 10px;border-radius:3px;border:1px dashed var(--border);color:var(--muted);background:transparent;cursor:pointer;margin-top:3px;width:100%;}
+.addrow:hover{border-color:var(--blue2);color:var(--blue2);border-style:solid;}
+/* notes section */
+.ns{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+.ns-hdr{padding:7px 12px;display:flex;align-items:center;justify-content:space-between;}
+.nexp{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:2px 8px;border-radius:3px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;}
+.nexp:hover{border-color:var(--blue2);color:var(--blue2);}
+.nta{width:100%;min-height:110px;background:transparent;border:none;border-top:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.7;padding:10px 12px;resize:vertical;outline:none;display:block;}
+.nta:focus{background:#ffffff03;}
+/* quality */
+.qbar{display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--card);border-radius:4px;border:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;}
+.qlb{color:var(--muted);}
+.qsc{font-weight:600;}
+.qsc.high{color:var(--green);}
+.qsc.medium{color:var(--amber);}
+.qsc.low{color:var(--red);}
+.qis{color:var(--muted);font-size:9px;flex:1;line-height:1.6;}
+.qis span{color:var(--amber);margin-right:5px;}
+/* empty */
+.ep{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);padding:2rem;text-align:center;}
+.ei{font-size:36px;opacity:.15;}
+.el{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;line-height:1.7;}
+.es{font-size:11px;opacity:.6;max-width:260px;line-height:1.6;}
+/* RIGHT PANE */
+#sumPane{width:292px;flex-shrink:0;border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;}
+.ps{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+.ds{background:var(--card);border:1px solid var(--border);border-radius:5px;padding:10px 12px;}
+.dt{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.sr{display:flex;align-items:center;justify-content:space-between;font-size:11px;margin-bottom:4px;}
+.sl{color:var(--text2);}
+.sva{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--white);font-weight:600;}
+.sva.ok{color:var(--green);}
+.sva.warn{color:var(--amber);}
+.tr{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px;}
+.td{width:6px;height:6px;border-radius:2px;flex-shrink:0;}
+.tl{color:var(--text2);flex:1;}
+.tc{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+.qs{display:flex;height:5px;border-radius:3px;overflow:hidden;margin:4px 0 8px;}
+.qs-h{background:var(--green);}
+.qs-m{background:var(--amber);}
+.qs-l{background:var(--red);}
+.ci{padding:5px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:7px;}
+.ci:last-child{border-bottom:none;}
+.cav{width:22px;height:22px;border-radius:50%;background:var(--border2);display:flex;align-items:center;justify-content:center;font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text2);flex-shrink:0;margin-top:1px;}
+.cnf{flex:1;min-width:0;}
+.cnm{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cmt{font-size:10px;color:var(--muted);}
+.ri2{padding:5px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.ri2:last-child{border-bottom:none;}
+.ri2:hover .ri2t{color:var(--blue2);}
+.ri2t{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ri2m{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;display:flex;gap:6px;}
+/* MODALS */
+.ov{display:none;position:fixed;inset:0;background:#090e1acc;z-index:300;align-items:center;justify-content:center;}
+.ov.show{display:flex;}
+.mo{background:var(--surface);border:1px solid var(--border);border-radius:8px;width:min(640px,94vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
+.mo.wide{width:min(840px,96vw);}
+.mo.narrow{width:min(480px,94vw);}
+.mh{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.mti{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--white);letter-spacing:.05em;}
+.mcl{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;}
+.mcl:hover{color:var(--white);}
+.mb{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px;}
+.mf{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;align-items:center;}
+.mlb{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;}
+.mbr{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;padding:8px 22px;border-radius:5px;border:none;background:var(--blue);color:#fff;cursor:pointer;}
+.mbr:hover{background:#2563eb;}
+.mbr:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;}
+.mbc{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 16px;border-radius:5px;border:1px solid var(--border);color:var(--text2);background:transparent;cursor:pointer;}
+.mbc:hover{border-color:var(--blue2);color:var(--blue2);}
+.mbd{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 14px;border-radius:5px;border:1px solid var(--red);color:var(--red);background:transparent;cursor:pointer;margin-right:auto;}
+.mbd:hover{background:#7f1d1d33;}
+.itabs{display:flex;gap:4px;border-bottom:1px solid var(--border);padding-bottom:10px;}
+.ita{font-size:11px;font-family:'IBM Plex Mono',monospace;padding:5px 12px;border-radius:4px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;letter-spacing:.04em;}
+.ita.on{border-color:var(--blue);color:var(--blue2);background:#1e3a5f44;}
+.ita:hover:not(.on){color:var(--text2);}
+.dz{border:2px dashed var(--border2);border-radius:8px;padding:28px;text-align:center;cursor:pointer;position:relative;}
+.dz:hover,.dz.dov{border-color:var(--blue);background:#1e3a5f22;}
+.dz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.dz-ic{font-size:26px;margin-bottom:8px;opacity:.35;}
+.dz-tx{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text2);}
+.dz-su{font-size:11px;color:var(--muted);margin-top:4px;}
+.dz.ok{border-color:var(--green);background:#021a0e44;}
+.pa{width:100%;min-height:200px;background:var(--card);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.7;padding:10px 12px;resize:vertical;outline:none;}
+.pa:focus{border-color:var(--blue);}
+.ph{font-size:10px;color:var(--muted);line-height:1.75;background:var(--navy);border:1px solid var(--border);border-radius:4px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;}
+.ph .hk{color:var(--blue2);}
+.ph .ho{color:var(--muted);opacity:.65;}
+.sb{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 10px;background:var(--card);border-radius:4px;border:1px solid var(--border);color:var(--blue2);}
+.sb.ok{color:var(--green);border-color:#065f46;background:#021a0e44;}
+.sb.err{color:var(--red);border-color:#7f1d1d;background:#1a040444;}
+.sb.warn{color:var(--amber);border-color:#78350f;background:#1c100844;}
+.pp{background:#070d1a;border:1px solid var(--border);border-radius:5px;padding:10px 12px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#60a5fa;white-space:pre-wrap;max-height:130px;overflow-y:auto;line-height:1.6;}
+.nmta{width:100%;height:calc(80vh - 120px);background:var(--card);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.75;padding:14px 16px;resize:none;outline:none;}
+.nmta:focus{border-color:var(--blue);}
+.cf{display:flex;flex-direction:column;gap:10px;}
+.cin{width:100%;background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 9px;outline:none;}
+.cin:focus{border-color:var(--blue);}
+.crow{display:flex;gap:8px;}
+.crow .cin{flex:1;}
+.csel{background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 9px;outline:none;cursor:pointer;}
+.csel:focus{border-color:var(--blue);}
+/* contacts modal — bulk select */
+.con-list-wrap{display:flex;flex-direction:column;gap:3px;max-height:400px;overflow-y:auto;}
+.con-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:4px;border:1px solid var(--border);background:var(--card);}
+.con-row.sel{border-color:var(--blue);background:#1e3a5f22;}
+.con-cb{accent-color:var(--blue2);cursor:pointer;flex-shrink:0;}
+.con-avatar{width:28px;height:28px;border-radius:50%;background:var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text2);flex-shrink:0;}
+.con-info{flex:1;min-width:0;}
+.con-name{font-size:12px;color:var(--text);}
+.con-meta{font-size:10px;color:var(--muted);}
+.con-domain{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:1px 6px;border-radius:3px;border:1px solid var(--border);color:var(--muted);flex-shrink:0;}
+.bulk-bar{display:none;padding:7px 0;align-items:center;gap:8px;border-bottom:1px solid var(--border);margin-bottom:6px;}
+.bulk-bar.show{display:flex;}
+/* CRM workspace */
+#crmWs{display:none;position:fixed;top:var(--topbar-h);left:0;right:0;bottom:80px;flex-direction:row;overflow:hidden;}
+#crmLeft{width:240px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;}
+#crmMid{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:var(--navy);}
+#crmRight{width:280px;flex-shrink:0;border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;}
+.crm-con-item{padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:9px;}
+.crm-con-item:hover{background:var(--panel);}
+.crm-con-item.act{background:var(--card);border-left:2px solid var(--blue);padding-left:10px;}
+.crm-av{width:28px;height:28px;border-radius:50%;background:var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text2);flex-shrink:0;}
+.crm-cinfo{flex:1;min-width:0;}
+.crm-cname{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.crm-cmeta{font-size:10px;color:var(--muted);}
+.crm-cbadge{font-size:8px;font-family:'IBM Plex Mono',monospace;padding:1px 5px;border-radius:3px;border:1px solid var(--border);color:var(--muted);flex-shrink:0;}
+.crm-rec-item{padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
+.crm-rec-item:hover{background:var(--panel);}
+.crm-rec-title{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--white);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.crm-rec-meta{font-size:10px;color:var(--muted);display:flex;gap:6px;align-items:center;}
+.crm-detail-scroll{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
+.crm-card{background:var(--card);border:1px solid var(--border);border-radius:5px;padding:12px 14px;}
+.crm-card-title{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.crm-field{display:flex;gap:8px;margin-bottom:6px;font-size:11px;}
+.crm-fl{color:var(--muted);min-width:70px;font-size:10px;flex-shrink:0;}
+.crm-fv{color:var(--text);flex:1;min-width:0;}
+.crm-act-item{padding:4px 0;border-bottom:1px solid var(--border);font-size:11px;}
+.crm-act-item:last-child{border-bottom:none;}
+.crm-act-owner{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--blue2);margin-bottom:2px;}
+.crm-act-text{color:var(--text);}
+.crm-act-dl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--amber);margin-top:2px;}
+.crm-tl-item{padding:4px 0;border-bottom:1px solid var(--border);font-size:10px;cursor:pointer;}
+.crm-tl-item:last-child{border-bottom:none;}
+.crm-tl-item:hover span.crm-tl-title{color:var(--blue2);}
+.crm-tl-date{font-family:'IBM Plex Mono',monospace;color:var(--muted);margin-right:8px;}
+.crm-tl-title{color:var(--text);}
+.crm-edit-btn{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:3px 10px;border-radius:3px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;}
+.crm-edit-btn:hover{color:var(--blue2);border-color:var(--blue2);}
+/* TAGS workspace */
+#tagsWs{display:none;position:fixed;top:var(--topbar-h);left:0;right:0;bottom:80px;flex-direction:row;overflow:hidden;}
+#tagsLeft{width:240px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;}
+#tagsMid{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:var(--navy);}
+#tagsRight{width:280px;flex-shrink:0;border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;}
+.tag-li{padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:8px;}
+.tag-li:hover{background:var(--panel);}
+.tag-li.act{background:var(--card);border-left:2px solid var(--purple);padding-left:10px;}
+.tag-li-pill{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:10px;border:1px solid #4c1d95;color:#c4b5fd;background:#0d0720;flex-shrink:0;}
+.tag-li-cnt{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-left:auto;flex-shrink:0;}
+.tag-li-new{font-size:8px;font-family:'IBM Plex Mono',monospace;padding:1px 5px;border-radius:3px;border:1px solid #78350f;color:var(--amber);background:#1c1008;flex-shrink:0;}
+.tag-rec-item{padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
+.tag-rec-item:hover{background:var(--panel);}
+.tag-rec-title{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--white);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tag-rec-meta{font-size:10px;color:var(--muted);display:flex;gap:6px;align-items:center;}
+.tag-detail-scroll{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+/* tag manager (modal, kept for quick access) */
+.tm-list{display:flex;flex-direction:column;gap:3px;max-height:360px;overflow-y:auto;}
+.tm-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:4px;border:1px solid var(--border);background:var(--card);}
+.tm-pill{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:10px;border:1px solid #4c1d95;color:#c4b5fd;background:#0d0720;flex-shrink:0;}
+.tm-rename{flex:1;background:transparent;border:none;border-bottom:1px solid transparent;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:1px 4px;outline:none;}
+.tm-rename:focus{border-bottom-color:var(--blue2);}
+.tm-cnt{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);flex-shrink:0;min-width:24px;text-align:right;}
+.tm-del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 5px;}
+.tm-del:hover{color:var(--red);}
+/* log */
+.log{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:11px;z-index:150;overflow:hidden;height:80px;}
+.log-in{height:100%;overflow-y:auto;padding:.4rem .75rem;display:flex;flex-direction:column;gap:1px;}
+.lok{color:var(--green);}
+.lwarn{color:var(--amber);}
+.lerr{color:var(--red);}
+.linfo{color:#60a5fa;}
+/* global drop overlay */
+.dov-gl{display:none;position:fixed;inset:0;background:#090e1aee;z-index:500;align-items:center;justify-content:center;}
+.dov-gl.show{display:flex;}
+.dov-box{border:2px dashed var(--blue);border-radius:10px;padding:40px 64px;text-align:center;color:var(--blue2);font-family:'IBM Plex Mono',monospace;}
+.dov-box .ic{font-size:36px;margin-bottom:10px;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+
+<div class="dov-gl" id="dgl"><div class="dov-box"><div class="ic">📂</div><div style="font-size:14px;font-weight:600;margin-bottom:4px;">Drop to import</div><div style="font-size:11px;opacity:.7;">CSV · JSON · Standard Notes · Archive</div></div></div>
+
+<div id="topbar">
+  <div class="tbar-logo">NOTES<span>PREP</span><span class="tver">v1.4.0</span></div>
+  <div class="tbar-views">
+    <button class="tbtn on" id="vNotes" onclick="setView('notes')" style="border-left:none;">✎ Notes</button>
+    <button class="tbtn" id="vCrm"   onclick="setView('crm')">⊞ CRM</button>
+    <button class="tbtn" id="vTags"  onclick="setView('tags')">⊛ Tags</button>
+  </div>
+  <div class="tstats">
+    <div class="tstat">RECORDS <span class="sv" id="sT">0</span></div>
+    <div class="tstat">ACTIONS <span class="sv" id="sA">0</span></div>
+    <div class="tstat">SOV RECORDS <span class="sv ok" id="sS">0</span></div>
+    <div class="tstat">CONTACTS <span class="sv" id="sC">0</span></div>
+  </div>
+  <div class="tactions">
+    <button class="tbtn ac" onclick="oIM('csv')">⊕ csv</button>
+    <button class="tbtn ac" onclick="oIM('json')">⊕ json</button>
+    <button class="tbtn ac" onclick="oIM('sn')">⊕ sn</button>
+    <button class="tbtn ac" onclick="oIM('text')">✎ note</button>
+    <div class="exp-wrap">
+      <button class="tbtn" id="expBtn" onclick="toggleExpMenu()" disabled>↓ export ▾</button>
+      <div class="exp-menu" id="expMenu">
+        <div class="exp-item" id="expAll" onclick="exportAR();closeExpMenu()">📦 Full archive</div>
+        <div class="exp-item" id="expCon" onclick="exportContacts();closeExpMenu()">👤 Contacts JSON</div>
+        <div class="exp-item" id="expTags" onclick="exportTags();closeExpMenu()">⊛ Tags JSON</div>
+      </div>
+    </div>
+    <button class="tbtn" onclick="document.getElementById('ldIn').click()">↑ load<input type="file" id="ldIn" accept=".json" onchange="onLoad(this)" style="display:none;position:absolute;opacity:0;width:0;height:0;"></button>
+    <button class="tbtn" onclick="oCon()">⊞ contacts</button>
+    <button class="tbtn" onclick="oTags()">⊛ tags</button>
+    <button class="tbtn" onclick="clrAll()">⊘ clear</button>
+  </div>
+</div>
+
+<!-- NOTES WORKSPACE -->
+<div id="ws">
+  <div id="recPane">
+    <div class="phdr"><span class="ptitle">Records</span><span class="pcnt" id="rCnt">0</span></div>
+    <div class="pfilter">
+      <div class="pfilter-row">
+        <input class="fin" id="srch" placeholder="search…" oninput="renderList()">
+        <div class="tf-chip" id="tfc" onclick="clrTF()"><span id="tfl"></span><span style="opacity:.6;margin-left:2px;">×</span></div>
+      </div>
+      <div class="pfilter-row">
+        <div class="sort-btns">
+          <button class="sbtn on" id="srt-date-d" onclick="setSort('date-d')">Date ↓</button>
+          <button class="sbtn" id="srt-date-a" onclick="setSort('date-a')">Date ↑</button>
+          <button class="sbtn" id="srt-title"  onclick="setSort('title')">Title</button>
+          <button class="sbtn" id="srt-type"   onclick="setSort('type')">Type</button>
+        </div>
+      </div>
+    </div>
+    <div id="recList"><div class="ep" id="lEmpty"><div class="ei">📋</div><div class="el">NO RECORDS YET</div><div class="es">Import CSV, JSON, SN backup, or add a free-text note</div></div></div>
+  </div>
+  <div id="detPane">
+    <div class="ep" id="dEmpty"><div class="ei">📝</div><div class="el">SELECT A RECORD</div><div class="es">Choose a record to review and edit</div></div>
+    <div id="dEd" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+      <div class="dhdr">
+        <input class="dt-in" id="dTit" placeholder="Title…" oninput="FC('title',this.value)">
+        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+          <button class="case-btn" onclick="applyCase('title')" title="Title Case">Aa</button>
+          <button class="case-btn" onclick="applyCase('upper')" title="UPPER CASE">AA</button>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+          <span id="dSrc" class="badge b-csv">CSV</span>
+          <span id="dQ" style="font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 6px;border-radius:3px;border:1px solid #065f46;color:var(--green);background:#021a11;">HIGH</span>
+        </div>
+      </div>
+      <div class="dscroll" id="dScr">
+        <div class="cs" id="coreS">
+          <div class="cs-hdr" onclick="togS('coreS')"><div class="cs-hl"><span class="cs-ti">Core Fields</span></div><span class="cs-ch">▾</span></div>
+          <div class="cs-bd">
+            <div class="fr"><div class="fl">Date</div><div class="fv"><input type="date" class="fi" id="fDt" oninput="FC('date',this.value)" style="max-width:160px;"></div></div>
+            <div class="fr"><div class="fl">Record Type</div><div class="fv"><select class="fs" id="fRT" onchange="onRT(this.value)" style="max-width:190px;"><option value="meeting">meeting</option><option value="note">note</option><option value="debrief">debrief</option><option value="planning">planning</option><option value="action_log">action_log</option><option value="reference">reference</option></select></div></div>
+            <div id="fMTr" class="fr"><div class="fl">Mtg Type</div><div class="fv"><select class="fs" id="fMT" onchange="FC('meeting_type',this.value)" style="max-width:190px;"><option value="unknown">unknown</option><option value="vendor">vendor</option><option value="research">research</option><option value="committee">committee</option><option value="internal">internal</option><option value="one_on_one">one_on_one</option><option value="strategic">strategic</option><option value="interview">interview</option><option value="administrative">administrative</option></select></div></div>
+            <div id="fPLr" class="fr"><div class="fl">Platform</div><div class="fv" style="display:flex;gap:8px;align-items:center;"><select class="fs" id="fPL" onchange="FC('platform',this.value)" style="max-width:160px;"><option value="unknown">unknown</option><option value="zoom">zoom</option><option value="teams">teams</option><option value="webex">webex</option><option value="google_meet">google_meet</option><option value="phone">phone</option><option value="in_person">in_person</option></select><span id="fPC" style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--muted);"></span></div></div>
+            <div id="fRCr" class="fr"><div class="fl">Flags</div><div class="fv"><div class="fck"><input type="checkbox" id="fRC" onchange="FC('is_recurring',this.checked)"><label for="fRC">Recurring</label></div></div></div>
+            <div class="fr"><div class="fl">Tags</div><div class="fv" style="position:relative;"><div class="tw" id="tw" onclick="focusTI()"><input class="tin" id="tIn" placeholder="add tag…" onkeydown="tkd(event)" oninput="tinput(this.value)" onfocus="showTS()" onblur="setTimeout(hideTS,160)"></div><div class="tsug" id="tsug"></div></div></div>
+          </div>
+        </div>
+        <div class="cs" id="attS" style="display:none;">
+          <div class="cs-hdr" onclick="togS('attS')"><div class="cs-hl"><span class="cs-ti">Attendees</span><span class="cs-ba" id="aBdg">0</span></div><span class="cs-ch">▾</span></div>
+          <div class="cs-bd"><div class="al" id="aList"></div><button class="addrow" onclick="addAtt()">+ add attendee</button></div>
+        </div>
+        <div class="cs" id="actS">
+          <div class="cs-hdr" onclick="togS('actS')"><div class="cs-hl"><span class="cs-ti">Action Items</span><span class="cs-ba" id="acBdg">0</span></div><span class="cs-ch">▾</span></div>
+          <div class="cs-bd">
+            <div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:2px;">Owner · Action · Deadline · ⚡ time-sensitive</div>
+            <div class="acl" id="acList"></div>
+            <button class="addrow" onclick="addAct()">+ add action item</button>
+          </div>
+        </div>
+        <div class="ns">
+          <div class="ns-hdr"><div class="cs-hl" style="gap:8px;"><span class="cs-ti">Notes / Body</span></div><button class="nexp" onclick="oNM()">⤢ expand</button></div>
+          <textarea class="nta" id="fNt" placeholder="Content…" oninput="FC('notes_raw',this.value)"></textarea>
+        </div>
+        <div class="qbar"><span class="qlb">QUALITY</span><span class="qsc" id="qSc">—</span><span class="qis" id="qIs"></span></div>
+      </div>
+    </div>
+  </div>
+  <div id="sumPane">
+    <div class="phdr"><span class="ptitle">Archive</span></div>
+    <div class="ps">
+      <div class="ds"><div class="dt">Overview</div>
+        <div class="sr"><span class="sl">Total records</span><span class="sva" id="smT">0</span></div>
+        <div class="sr"><span class="sl">Meetings</span><span class="sva" id="smM">0</span></div>
+        <div class="sr"><span class="sl">Notes / other</span><span class="sva" id="smN">0</span></div>
+        <div class="sr"><span class="sl">Total actions</span><span class="sva" id="smA">0</span></div>
+        <div class="sr"><span class="sl">Sovereign actions</span><span class="sva ok" id="smS">0</span></div>
+        <div class="sr"><span class="sl">Tagged records</span><span class="sva" id="smTg">0</span></div>
+      </div>
+      <div class="ds"><div class="dt">Record Types</div><div id="tyBk"></div></div>
+      <div class="ds"><div class="dt">Parse Quality</div>
+        <div class="qs"><div class="qs-h" id="qH" style="width:0%"></div><div class="qs-m" id="qM" style="width:0%"></div><div class="qs-l" id="qL" style="width:0%"></div></div>
+        <div class="sr"><span class="sl">HIGH</span><span class="sva ok" id="smH">0</span></div>
+        <div class="sr"><span class="sl">MEDIUM</span><span class="sva warn" id="smMe">0</span></div>
+        <div class="sr"><span class="sl" style="color:var(--text2);">LOW</span><span class="sva" style="color:var(--red);" id="smL">0</span></div>
+      </div>
+      <div class="ds">
+        <div class="dt" style="display:flex;justify-content:space-between;align-items:center;"><span>Contacts</span><button onclick="oCon()" style="font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 7px;border-radius:3px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;" onmouseover="this.style.color='var(--blue2)'" onmouseout="this.style.color='var(--muted)'">manage</button></div>
+        <div id="cPrev"></div>
+      </div>
+      <div class="ds"><div class="dt">Recent</div><div id="recRecent"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CRM WORKSPACE -->
+<div id="crmWs">
+  <div id="crmLeft">
+    <div class="phdr"><span class="ptitle">Contacts</span><span class="pcnt" id="crmConCnt">0</span></div>
+    <div style="padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:4px;">
+      <div style="display:flex;gap:5px;">
+        <input class="fin" id="crmSrch" placeholder="search contacts…" oninput="renderCrmLeft()" style="flex:1;">
+      </div>
+      <div style="display:flex;gap:5px;">
+        <button class="sbtn" onclick="oIM('crm-csv')" style="font-size:9px;" title="Upload contacts CSV">↑ CSV</button>
+        <button class="sbtn" onclick="oCon()" style="font-size:9px;" title="Manage contacts">manage</button>
+        <button class="sbtn" onclick="exportContacts()" style="font-size:9px;" title="Download contacts JSON">↓ JSON</button>
+      </div>
+    </div>
+    <div id="crmConList" style="flex:1;overflow-y:auto;min-height:0;"></div>
+  </div>
+  <div id="crmMid">
+    <div class="ep" id="crmMidEmpty"><div class="ei">👤</div><div class="el">SELECT A CONTACT</div><div class="es">Choose a contact to see all associated records and actions</div></div>
+    <div id="crmMidContent" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+      <div class="dhdr">
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--white);" id="crmMidName">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;" id="crmMidMeta">—</div>
+        </div>
+      </div>
+      <div style="padding:6px 14px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface);flex-shrink:0;" id="crmMidStats"></div>
+      <div style="flex:1;overflow-y:auto;" id="crmMidList"></div>
+    </div>
+  </div>
+  <div id="crmRight">
+    <div class="phdr"><span class="ptitle">Contact Detail</span></div>
+    <div class="ep" id="crmRightEmpty"><div class="ei" style="font-size:24px;">←</div><div class="es">Select a contact</div></div>
+    <div id="crmRightContent" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+      <div class="crm-detail-scroll" id="crmDetailScroll"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAGS WORKSPACE -->
+<div id="tagsWs">
+  <div id="tagsLeft">
+    <div class="phdr"><span class="ptitle">Tags</span><span class="pcnt" id="tagsLeftCnt">0</span></div>
+    <div style="padding:5px 8px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:4px;">
+      <div style="display:flex;gap:5px;">
+        <input class="fin" id="tagsSrch" placeholder="search tags…" oninput="renderTagsLeft()" style="flex:1;">
+      </div>
+      <div style="display:flex;gap:5px;">
+        <button class="sbtn" onclick="oIM('tags-csv')" style="font-size:9px;" title="Upload tags CSV">↑ CSV</button>
+        <button class="sbtn" onclick="exportTags()" style="font-size:9px;" title="Download tags JSON">↓ JSON</button>
+        <button class="sbtn" onclick="clearNewTagFlags()" style="font-size:9px;" id="clearNewBtn" title="Dismiss new badges">✓ new</button>
+      </div>
+    </div>
+    <div id="tagsLeftList" style="flex:1;overflow-y:auto;min-height:0;"></div>
+  </div>
+  <div id="tagsMid">
+    <div class="ep" id="tagsMidEmpty"><div class="ei">⊛</div><div class="el">SELECT A TAG</div><div class="es">Choose a tag to see all associated records</div></div>
+    <div id="tagsMidContent" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+      <div class="dhdr">
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c4b5fd;" id="tagsMidName">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;" id="tagsMidStats">—</div>
+        </div>
+      </div>
+      <div style="flex:1;overflow-y:auto;" id="tagsMidList"></div>
+    </div>
+  </div>
+  <div id="tagsRight">
+    <div class="phdr"><span class="ptitle">Tag Detail</span></div>
+    <div class="ep" id="tagsRightEmpty"><div class="ei" style="font-size:24px;">←</div><div class="es">Select a tag</div></div>
+    <div id="tagsRightContent" style="display:none;flex-direction:column;height:100%;overflow:hidden;">
+      <div class="crm-detail-scroll" id="tagsDetailScroll"></div>
+    </div>
+  </div>
+</div>
+
+<div class="log"><div class="log-in" id="logIn"><span class="linfo">NOTESREP v1.4.0 — ready</span></div></div>
+
+<!-- INGEST MODAL -->
+<div class="ov" id="imOv"><div class="mo">
+  <div class="mh"><span class="mti">⊕ IMPORT</span><button class="mcl" onclick="cIM()">×</button></div>
+  <div class="mb">
+    <div class="itabs">
+      <button class="ita" id="iTC"  onclick="swTab('csv')">CSV</button>
+      <button class="ita" id="iTJ"  onclick="swTab('json')">JSON</button>
+      <button class="ita" id="iTSN" onclick="swTab('sn')">Standard Notes</button>
+      <button class="ita" id="iTT"  onclick="swTab('text')">Free text</button>
+    </div>
+    <!-- CSV -->
+    <div id="tpC" style="display:none;">
+      <div class="mlb">Granola CSV export</div>
+      <div class="dz" id="dzC" ondragover="dov(event,'dzC')" ondragleave="dlv('dzC')" ondrop="odp(event,'csv')"><input type="file" accept=".csv" onchange="ofl(event,'csv')"><div class="dz-ic" id="dzCI">📂</div><div class="dz-tx" id="dzCT">Drop CSV here or click</div><div class="dz-su" id="dzCS">.csv · Granola export</div></div>
+      <div id="sbC" style="display:none;" class="sb"></div>
+      <div id="pvC" style="display:none;"><div class="mlb" style="margin-top:8px;">Preview</div><div class="pp" id="ppC"></div></div>
+    </div>
+    <!-- JSON -->
+    <div id="tpJ" style="display:none;">
+      <div class="mlb">JSON note array, archive, or contacts/tags CSV</div>
+      <div class="dz" id="dzJ" ondragover="dov(event,'dzJ')" ondragleave="dlv('dzJ')" ondrop="odp(event,'json')"><input type="file" accept=".json" onchange="ofl(event,'json')"><div class="dz-ic" id="dzJI">{ }</div><div class="dz-tx" id="dzJT">Drop JSON here or click</div><div class="dz-su" id="dzJS">.json · array or archive</div></div>
+      <div id="sbJ" style="display:none;" class="sb"></div>
+      <div id="pvJ" style="display:none;"><div class="mlb" style="margin-top:8px;">Preview</div><div class="pp" id="ppJ"></div></div>
+      <div class="ph" style="margin-top:10px;"><span class="hk">[</span> <span class="ho">// title required; all other fields optional</span><br>&nbsp;&nbsp;{ <span class="hk">"title"</span>:"Note title", <span class="hk">"date"</span>:"2026-04-20",<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="ho">"record_type"</span>:"meeting|note|debrief|planning|action_log|reference",<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="ho">"tags"</span>:["pkd-grant"], <span class="ho">"body"</span>:"## Next Steps\n- **JJMD**: action" }<br><span class="hk">]</span></div>
+    </div>
+    <!-- Standard Notes -->
+    <div id="tpSN" style="display:none;">
+      <div class="mlb">Standard Notes backup JSON (version 004)</div>
+      <div class="dz" id="dzSN" ondragover="dov(event,'dzSN')" ondragleave="dlv('dzSN')" ondrop="odp(event,'sn')"><input type="file" accept=".txt,.json" onchange="ofl(event,'sn')"><div class="dz-ic" id="dzSNI">📓</div><div class="dz-tx" id="dzSNT">Drop SN backup here or click</div><div class="dz-su" id="dzSNS">.txt or .json · Standard Notes export</div></div>
+      <div id="sbSN" style="display:none;" class="sb"></div>
+      <div id="pvSN" style="display:none;"><div class="mlb" style="margin-top:8px;">Preview</div><div class="pp" id="ppSN"></div></div>
+      <div class="ph" style="margin-top:8px;"><span class="hk">Filters applied automatically:</span><br>· <span class="ho">SN|UserPreferences skipped</span><br>· <span class="ho">trashed: true notes skipped</span><br>· <span class="hk">uuid</span> used as stable record_id<br>· <span class="ho">SN|Tag items resolve to tags[]</span><br>· <span class="hk">updated_at</span> captured in schema</div>
+    </div>
+    <!-- Free text -->
+    <div id="tpT" style="display:none;">
+      <div class="ph"><span class="hk">TITLE:</span> Note title (required)<br><span class="hk">DATE:</span> April 20 2026 <span class="ho">or</span> 2026-04-20<br><span class="ho">RECORD_TYPE:</span> meeting|note|debrief|planning|action_log|reference<br><span class="ho">ATTENDEES:</span> Name (Role), Name2<br><span class="ho">PLATFORM:</span> zoom|teams|in_person|phone<br><span class="ho">TAGS:</span> pkd-grant, research<br><span class="ho">RECURRING:</span> yes|no<br><span style="color:var(--border2);">────────────────────────</span><br><span class="ho">## sections · - bullets · **Owner**: action</span></div>
+      <div class="mlb" style="margin-top:8px;">Paste note</div>
+      <textarea class="pa" id="paTA" placeholder="TITLE: My Note&#10;DATE: April 20 2026&#10;TAGS: pkd-grant&#10;&#10;## Next Steps&#10;- **JJMD**: Review proposal"></textarea>
+      <div id="sbT" style="display:none;" class="sb"></div>
+      <div id="pvT" style="display:none;"><div class="mlb" style="margin-top:8px;">Parsed</div><div class="pp" id="ppT"></div></div>
+    </div>
+    <!-- CRM CSV (hidden tab, triggered from CRM view) -->
+    <div id="tpCC" style="display:none;">
+      <div class="mlb">Contacts CSV — columns: name, role, org, domain, aliases, notes</div>
+      <div class="dz" id="dzCC" ondragover="dov(event,'dzCC')" ondragleave="dlv('dzCC')" ondrop="odp(event,'crm-csv')"><input type="file" accept=".csv" onchange="ofl(event,'crm-csv')"><div class="dz-ic" id="dzCCI">👤</div><div class="dz-tx" id="dzCCT">Drop contacts CSV here or click</div><div class="dz-su" id="dzCCS">name required · role, org, domain, aliases, notes optional</div></div>
+      <div id="sbCC" style="display:none;" class="sb"></div>
+      <div id="pvCC" style="display:none;"><div class="mlb" style="margin-top:8px;">Preview</div><div class="pp" id="ppCC"></div></div>
+    </div>
+    <!-- Tags CSV (hidden tab, triggered from Tags view) -->
+    <div id="tpTC" style="display:none;">
+      <div class="mlb">Tags CSV — one tag per line (or column header "tag")</div>
+      <div class="dz" id="dzTC" ondragover="dov(event,'dzTC')" ondragleave="dlv('dzTC')" ondrop="odp(event,'tags-csv')"><input type="file" accept=".csv,.txt" onchange="ofl(event,'tags-csv')"><div class="dz-ic" id="dzTCI">⊛</div><div class="dz-tx" id="dzTCT">Drop tags CSV here or click</div><div class="dz-su" id="dzTCS">One tag per row · slug format preferred</div></div>
+      <div id="sbTC" style="display:none;" class="sb"></div>
+      <div id="pvTC" style="display:none;"><div class="mlb" style="margin-top:8px;">Preview</div><div class="pp" id="ppTC"></div></div>
+    </div>
+  </div>
+  <div class="mf"><span id="imCnt" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-right:auto;"></span><button class="mbc" onclick="cIM()">Cancel</button><button class="mbr" id="imBtn" onclick="runIngest()" disabled>Add to Archive</button></div>
+</div></div>
+
+<!-- NOTES FULLSCREEN -->
+<div class="ov" id="nmOv"><div class="mo wide">
+  <div class="mh"><span class="mti" id="nmTit">Notes</span><button class="mcl" onclick="cNM()">×</button></div>
+  <div class="mb" style="padding:0;"><textarea class="nmta" id="nmTA" oninput="onNMI(this.value)"></textarea></div>
+  <div class="mf"><span style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-right:auto;" id="nmCnt"></span><button class="mbr" onclick="cNM()">Done</button></div>
+</div></div>
+
+<!-- CONTACTS MODAL (with bulk select) -->
+<div class="ov" id="conOv"><div class="mo narrow">
+  <div class="mh"><span class="mti">⊞ CONTACTS</span><button class="mcl" onclick="cCon()">×</button></div>
+  <div class="mb">
+    <div class="bulk-bar" id="conBulkBar">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);flex:1;" id="conBulkCount">0 selected</span>
+      <button class="mbd" style="margin-right:0;padding:5px 12px;font-size:10px;" onclick="bulkDelContacts()">Delete selected</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);cursor:pointer;"><input type="checkbox" id="conSelAll" onchange="toggleSelAll(this.checked)" style="accent-color:var(--blue2);"> Select all</label>
+    </div>
+    <div class="con-list-wrap" id="conBody"></div>
+  </div>
+  <div class="mf">
+    <button class="mbr" style="background:var(--green);color:#000;font-size:10px;padding:6px 14px;" onclick="openCE(null)">+ New</button>
+    <button class="mbr" style="background:var(--panel);color:var(--blue2);font-size:10px;padding:6px 14px;border:1px solid var(--blue);" onclick="oIM('crm-csv');cCon()">↑ CSV</button>
+    <button class="mbc" onclick="cCon()">Close</button>
+  </div>
+</div></div>
+
+<!-- CONTACT EDIT -->
+<div class="ov" id="ceOv"><div class="mo narrow">
+  <div class="mh"><span class="mti" id="ceTit">NEW CONTACT</span><button class="mcl" onclick="cCE()">×</button></div>
+  <div class="mb"><div class="cf">
+    <div><div class="mlb">Name *</div><input class="cin" id="ceNm" placeholder="Full name"></div>
+    <div class="crow"><div style="flex:2;"><div class="mlb">Role</div><input class="cin" id="ceRl" placeholder="Director…"></div><div style="flex:2;"><div class="mlb">Organization</div><input class="cin" id="ceOg" placeholder="Org / Company"></div></div>
+    <div><div class="mlb">Domain</div><select class="csel" id="ceDm" style="width:100%;"><option value="institutional">institutional</option><option value="vendor">vendor</option><option value="academic">academic</option><option value="personal">personal</option></select></div>
+    <div><div class="mlb">Aliases (comma-separated)</div><input class="cin" id="ceAl" placeholder="Rosie, R. Martinez"></div>
+    <div><div class="mlb">Notes</div><input class="cin" id="ceNo" placeholder="Brief context…"></div>
+  </div></div>
+  <div class="mf"><button class="mbd" id="ceDlBtn" onclick="delCon()" style="display:none;">Delete</button><button class="mbc" onclick="cCE()">Cancel</button><button class="mbr" onclick="savCon()">Save</button></div>
+</div></div>
+
+<!-- TAG MANAGER MODAL -->
+<div class="ov" id="tmOv"><div class="mo narrow">
+  <div class="mh"><span class="mti">⊛ TAG MANAGER</span><button class="mcl" onclick="cTags()">×</button></div>
+  <div class="mb">
+    <div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:8px;">Click tag name to rename (propagates to all records). ⊛ Tags tab for full management.</div>
+    <div class="tm-list" id="tmList"></div>
+  </div>
+  <div class="mf">
+    <button class="mbr" style="background:var(--panel);color:var(--blue2);font-size:10px;padding:6px 14px;border:1px solid var(--blue);margin-right:auto;" onclick="setView('tags');cTags()">Open Tags Tab ↗</button>
+    <button class="mbc" onclick="cTags()">Close</button>
+  </div>
+</div></div>
+
+<script>
+
+// ═══════════════════════════════════════════════════════════════════
+// CHANGELOG
+// v1.4.0  BUG: bldRec field name leak (mt/plat/pc) fixed · pCSVRow
+//         orphaned confidence field removed · raw_timestamp in bldRec ·
+//         selRec() targeted DOM class swap (no full renderList rebuild) ·
+//         buildCrmIndex() guarded by crmDirty flag · Orphaned CSS removed ·
+//         NEW: Standard Notes JSON import (4th ingest tab) · Separate
+//         export for contacts JSON + tags JSON · Export dropdown menu ·
+//         Bulk contact delete with checkboxes + select-all · Attendee/
+//         action rows flex-wrap (no truncation at any zoom) · CRM bulk
+//         contact CSV upload · Tags workspace tab (3-pane: tag list |
+//         records | detail) · Tags bulk CSV upload · new-tag badge on
+//         import reconciliation · updated_at field in schema ·
+//         CRM dirty flag for index rebuild optimization ·
+//         CRM render functions use named CSS classes (no inline styles)
+// v1.3.1  Fix: RFC 4180 CSV parser handles embedded newlines in quoted
+//         fields · Unicode normalization at row level
+// v1.3.0  Granola v2: user_email/workspace_name · new section roles ·
+//         artifact owner filter · Unicode normalization · title case
+//         buttons · keyboard nav j/k/arrows
+// v1.2.0  SOV RECORDS counter · time-sensitive label · deadline split ·
+//         date picker · sort controls · tag manager · CRM workspace
+// v1.1.0  Multi-note JSON import · record_type · collapsible sections ·
+//         notes fullscreen · tags with highlight · contacts auto-seed
+// v1.0.0  CSV + free-text import · record editor · export
+// ═══════════════════════════════════════════════════════════════════
+
+// ── STATE ──────────────────────────────────────────────────────────
+let AR={manifest:{},contacts:[],registry:[],newTags:new Set()};
+let selId=null,curTab='csv',pending=[],ceId=null,aTF=null,curSort='date-d';
+let crmSelId=null,curView='notes',crmDirty=true;
+let crmIdx={};
+let tagsSelTag=null;
+let conSelected=new Set();
+
+// ── CONSTANTS ──────────────────────────────────────────────────────
+const STOP=new Set(['the','a','an','and','or','for','of','to','in','on','at','with',
+  'meeting','update','weekly','new','re','fw','follow','up','discussion','call','chat',
+  'sync','session','next','steps','review','via']);
+const PLAT={zoom:/zoom\.us|zoom meeting|join zoom/i,teams:/teams\.microsoft\.com|microsoft teams/i,
+  webex:/webex\.com|webex meeting/i,google_meet:/meet\.google\.com|google meet/i,
+  phone:/\bdial[-\s]in\b|\bphone\s+call\b/i,in_person:/\bin.person\b|\bin person\b/i};
+const OWN={'jjmd':'JJMD','jean':'JJMD','jj':'JJMD','jjeudy':'JJMD','dr. jeudy':'JJMD'};
+const ART_DROP=new Set(['chat with meeting transcript']);
+const ART_REMAP={'speaker a':'JJMD','speaker b':'JJMD','anonymous':'JJMD'};
+const AVBS=[/send\b/i,/reach\s+out\b/i,/schedule\b/i,/set\s+up\b/i,/review\b/i,
+  /confirm\b/i,/provide\b/i,/complete\b/i,/develop\b/i,/explore\b/i,/contact\b/i,
+  /follow.?up\b/i,/present\b/i,/demo\b/i,/build\b/i,/create\b/i,/draft\b/i,
+  /finalize\b/i,/submit\b/i,/coordinate\b/i,/check\b/i,/update\b/i,/prepare\b/i,
+  /identify\b/i,/share\b/i,/discuss\b/i,/write\b/i,/assess\b/i];
+const SROLES=[[/next\s+steps?/i,'next_steps'],[/action\s+items?/i,'action_items'],
+  [/decisions?/i,'decisions'],[/agenda/i,'agenda'],
+  [/background|context|overview/i,'context'],
+  [/key\s+(?:points?|discussion|takeaways?)/i,'key_points'],
+  [/follow.?up/i,'followup'],[/summary/i,'summary_section'],
+  [/financial|budget/i,'financial'],[/technical|implementation/i,'technical'],
+  [/research/i,'research'],[/clinical/i,'clinical'],
+  [/delegate|waiting\s+on/i,'action_items'],
+  [/outstanding\s+(?:items?|tasks?|technical|requirements?)/i,'action_items'],
+  [/tomorrow.?s?\s+priorities?/i,'action_items'],
+  [/daily\s+priorities?/i,'action_items'],
+  [/priorities?\s*[&+]\s*follow/i,'action_items'],
+  [/work\s+tasks?/i,'action_items'],
+  [/upcoming\s+(?:meetings?|presentations?)/i,'followup'],
+  [/unresolved|needs?\s+clarification/i,'decisions'],
+  [/meeting\s+status|current\s+state/i,'context']];
+const MTRULES=[[/\binterview\b/i,'interview'],
+  [/grant|manuscript|research|r21|r01|pkd|flywheel|radiom|imaging\s+core/i,'research'],
+  [/strategic\s+planning|strategy/i,'strategic'],
+  [/executive\s+committee|steering\s+committee|committee\s+meeting|board/i,'committee'],
+  [/division\s+chief|one.on.one|1:1|check.in/i,'one_on_one'],
+  [/pacs|epic|qure|clearsite|evidentia|evidencecare|nanox|4dmedical|heartflow|rad.?aid/i,'vendor'],
+  [/demo|introduction|intro\s+meeting/i,'vendor']];
+const RTRULES=[[/\bdebrief\b/i,'debrief'],[/\bplanning\b|\bstrategy\b/i,'planning'],
+  [/\baction\s+items?\b|\baction\s+log\b/i,'action_log'],
+  [/\breference\b|\btemplate\b|\bguide\b/i,'reference'],
+  [/\bnotes?\s*$|\bthoughts?\b|\bideas?\b|\bdraft\b/i,'note'],
+  [/\bjournal\b/i,'debrief']];
+const TCOL={meeting:'#3b82f6',note:'#22d3ee',debrief:'#f59e0b',
+  planning:'#a78bfa',action_log:'#f87171',reference:'#94a3b8'};
+
+// ── UTILS ───────────────────────────────────────────────────────────
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function uid(t,d){let h=0;const s=(t||'').toLowerCase()+'|'+(d||'');for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return Math.abs(h).toString(36).padStart(8,'0').slice(0,12);}
+function cuid(n){let h=0;for(let i=0;i<n.length;i++){h=((h<<5)-h)+n.charCodeAt(i);h|=0;}return'c'+Math.abs(h).toString(36).slice(0,8);}
+function nD(r){if(!r)return null;r=r.trim();let m=r.match(/^(\d{4}-\d{2}-\d{2})/);if(m)return m[1];m=r.match(/^(\d{4}-\d{2}-\d{2})T/);if(m){try{const d=new Date(r),e=new Date(d.getTime()-4*3600000);return e.toISOString().slice(0,10);}catch(e){return m[1];}}const mo={january:1,february:2,march:3,april:4,may:5,june:6,july:7,august:8,september:9,october:10,november:11,december:12,jan:1,feb:2,mar:3,apr:4,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};m=r.match(/^([a-zA-Z]+)\s+(\d{1,2}),?\s*(\d{4})?$/i);if(m){const mo2=mo[m[1].toLowerCase()];if(mo2){const yr=m[3]?+m[3]:new Date().getFullYear();return`${yr}-${String(mo2).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;}}return null;}
+function nO(r){const k=r.trim().toLowerCase();if(OWN[k])return OWN[k];for(const c of(AR.contacts||[])){if((c.aliases||[]).some(a=>a.toLowerCase()===k)||c.name.toLowerCase()===k)return c.name;}return r.trim();}
+function infPlat(t){for(const[p,re]of Object.entries(PLAT)){if(re.test(t||''))return[p,'inferred'];}return['unknown','none'];}
+function cMT(t){for(const[re,v]of MTRULES){if(re.test(t))return v;}return/\bweekly\b|\bmonthly\b/i.test(t)?'internal':'unknown';}
+function cRT(t){for(const[re,v]of RTRULES){if(re.test(t))return v;}return'meeting';}
+function hasV(t){return AVBS.some(r=>r.test(t));}
+function normStr(s){return(s||'').replace(/[\u2018\u2019]/g,"'").replace(/[\u201c\u201d]/g,'"');}
+
+// ── PARSERS ─────────────────────────────────────────────────────────
+function parseSecs(txt){
+  if(!txt)return[];
+  txt=txt.replace(/[\u2018\u2019]/g,"'");
+  const s=[];let role='body',title='',lines=[],lvl=0;
+  for(const line of txt.split('\n')){
+    const m=line.match(/^(#{1,4})\s+(.+)$/);
+    if(m){if(lines.length){const b=lines.join('\n').trim();if(b)s.push({role,title,body:b,level:lvl});lines=[];}
+      lvl=m[1].length;title=m[2].trim();role='body';
+      for(const[re,r]of SROLES){if(re.test(title)){role=r;break;}}}
+    else lines.push(line);
+  }
+  if(lines.length){const b=lines.join('\n').trim();if(b)s.push({role,title,body:b,level:lvl});}
+  return s;
+}
+
+function exActs(txt,src){
+  if(!txt)return[];
+  txt=normStr(txt);
+  const items=[];
+  for(let line of txt.split('\n')){
+    line=line.trim().replace(/^[-*•]\s+/,'').replace(/^\d+\.\s+/,'');
+    if(!line||line.startsWith('#'))continue;
+    let dl=null,dlNote=null;
+    const dm=line.match(/\[DEADLINE:\s*([^\]]+)\]/i);
+    if(dm){dl=nD(dm[1]);line=line.slice(0,dm.index).trim();}
+    if(!dl){const dm2=line.match(/\bby\s+(?:end\s+of\s+)?([A-Za-z]+\s+\d{0,2},?\s*\d{0,4}|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i);if(dm2)dl=nD(dm2[1]);}
+    let owner='JJMD',action=line;
+    const bm=line.match(/\*\*([^*]+)\*\*\s*[:\-]\s*(.*)/);
+    if(bm){owner=nO(bm[1]);action=bm[2].trim();}
+    else{const nm=line.match(/^([A-Z][a-zA-Z\s.]+?)\s*:\s+(.+)/);
+      if(nm&&nm[1].trim().split(' ').length<=5&&!/\b(?:is|was|has|have|the|this)\b/i.test(nm[1])){owner=nO(nm[1]);action=nm[2].trim();}}
+    if(!action||action.length<4)continue;
+    const ownerL=owner.toLowerCase();
+    if(ART_DROP.has(ownerL)||ART_DROP.has(action.toLowerCase().slice(0,35)))continue;
+    if(ART_REMAP[ownerL])owner=ART_REMAP[ownerL];
+    if(!hasV(action)){const ctx=/\bwith\b|\bfor\b|\bto\b|\bby\b/i.test(action)&&action.split(' ').length>4;if(!ctx)continue;}
+    const ts=/\basap\b|\burgent\b|\bimmediately\b|\bby\s+(?:next\s+week|friday|monday|eod)\b|\btoday\b|\btomorrow\b/i.test(action);
+    items.push({action:action.slice(0,300),owner,sovereign_action:['JJMD','Jean','JJ'].includes(owner),deadline:dl,deadline_note:dlNote,time_sensitive:ts,source_section:src,status:'open'});
+  }
+  return items;
+}
+
+// ── bldRec — FIXED: correct field names, raw_timestamp ──────────────
+function bldRec(f){
+  const{title='',date='',record_type,meeting_type,platform,platform_confidence,
+    is_recurring=false,attendees=[],tags=[],body='',source='free_text',
+    document_id=null,raw_timestamp='',summary_raw=null,updated_at=null}=f;
+  const d=nD(date)||new Date().toISOString().slice(0,10);
+  const rt=record_type||cRT(title);
+  const mt=meeting_type||cMT(title);
+  const isMtg=['meeting','debrief'].includes(rt);
+  let plat=platform,pc=platform_confidence;
+  if(!plat||plat==='unknown')[plat,pc]=infPlat(body);
+  const secs=parseSecs(body);
+  const acts=[];
+  for(const s of secs){if(['next_steps','action_items','followup'].includes(s.role))acts.push(...exActs(s.body,s.role));}
+  const ir=/\[ACTION\]\s*(.+)/gi;let m;
+  while((m=ir.exec(body))!==null)acts.push({action:m[1].trim().slice(0,300),owner:'JJMD',sovereign_action:true,deadline:null,deadline_note:null,time_sensitive:false,source_section:'inline_tag',status:'open'});
+  const issues=[];
+  if(isMtg&&!attendees.length)issues.push('no_attendees');
+  if(isMtg&&plat==='unknown')issues.push('platform_unknown');
+  if(!body&&!summary_raw)issues.push('no_content');
+  const score=Math.max(0,100-(issues.filter(i=>i==='no_content').length*40));
+  const confidence=score>=85?'HIGH':score>=60?'MEDIUM':'LOW';
+  // FIXED: correct field names (was mt, plat, pc)
+  return{record_id:uid(title,d),source,document_id,calendar_event_id:null,
+    title:title||'Untitled',date:d,raw_timestamp,updated_at,
+    record_type:rt,is_recurring,
+    meeting_type:isMtg?mt:null,
+    platform:isMtg?plat:null,
+    platform_confidence:isMtg?pc:null,
+    attendees,duration_minutes:null,tags,
+    summary_raw:summary_raw||null,notes_raw:normStr(body)||null,
+    sections:secs,action_items:acts,
+    parse_quality:{confidence,score,issues}};
+}
+
+// ── pCSVRow — FIXED: removed orphaned top-level confidence ──────────
+function pCSVRow(row){
+  const title=normStr((row['document_title']||'').trim());
+  const rawDate=(row['document_created']||'').trim();
+  const summary=normStr((row['summary']||'').trim());
+  const notes=normStr((row['notes']||'').trim());
+  const docId=(row['document_id']||'').trim();
+  const d=nD(rawDate)||rawDate.slice(0,10);
+  const[plat,pc]=infPlat(summary+'\n'+notes);
+  const secs=parseSecs(summary);const acts=[];
+  for(const s of secs){if(['next_steps','action_items','followup'].includes(s.role))acts.push(...exActs(s.body,s.role));}
+  if(notes&&/next\s+steps?|action\s+items?/i.test(notes)){const mm=notes.match(/(?:next\s+steps?|action\s+items?)\s*:?\s*\n([\s\S]*?)(?=\n##|$)/i);if(mm)acts.push(...exActs(mm[1],'notes'));}
+  const rt=cRT(title);const mt=cMT(title);
+  const issues=['no_attendees','no_duration'];
+  if(!summary)issues.push('no_summary');if(!notes)issues.push('no_notes');
+  if(plat==='unknown')issues.push('platform_unknown');
+  const score=Math.max(0,100-((!summary?30:0)+(!notes?10:0)));
+  return{record_id:docId||uid(title,d),source:'granola_csv',document_id:docId||null,
+    calendar_event_id:null,title,date:d,raw_timestamp:rawDate,updated_at:null,
+    record_type:rt,is_recurring:/\bweekly\b|\bmonthly\b|\bbiweekly\b/i.test(title),
+    meeting_type:mt,platform:plat,platform_confidence:pc,attendees:[],
+    duration_minutes:null,tags:[],summary_raw:summary||null,notes_raw:notes||null,
+    sections:secs,action_items:acts,
+    parse_quality:{confidence:score>=85?'HIGH':score>=60?'MEDIUM':'LOW',score,issues}};
+}
+
+function pFT(text){
+  text=normStr(text);
+  const lines=text.trim().split('\n'),headers={};
+  const HK=new Set(['title','date','attendees','recurring','platform','type','record_type','tags']);
+  let bs=0;
+  for(let i=0;i<Math.min(lines.length,20);i++){
+    const m=lines[i].match(/^([A-Za-z_]+)\s*:\s*(.+)$/);
+    if(m&&HK.has(m[1].toLowerCase())){headers[m[1].toLowerCase()]=m[2].trim();bs=i+1;}
+    else if(lines[i].trim()===''&&i<10){bs=i+1;}
+    else if(i>0&&lines[i].trim()&&!m&&Object.keys(headers).length>0){bs=i;break;}
+  }
+  const att=[];
+  if(headers.attendees){for(const p of headers.attendees.split(',')){const t=p.trim();if(!t)continue;const m=t.match(/^(.+?)\s*\((.+?)\)$/);att.push(m?{name:m[1].trim(),role:m[2].trim()}:{name:t,role:null});}}
+  const tags=(headers.tags||'').split(',').map(t=>t.trim().toLowerCase().replace(/\s+/g,'-')).filter(Boolean);
+  return bldRec({title:headers.title||'Untitled',date:headers.date||'',
+    record_type:headers.record_type||headers.type||null,platform:headers.platform,
+    is_recurring:/yes|true/i.test(headers.recurring||''),
+    attendees:att,tags,body:lines.slice(bs).join('\n').trim(),source:'free_text'});
+}
+
+function pJN(obj){
+  const att=(obj.attendees||[]).map(a=>typeof a==='string'?{name:a,role:null}:a);
+  const tags=(obj.tags||[]).map(t=>(t||'').toString().toLowerCase().trim().replace(/\s+/g,'-')).filter(Boolean);
+  return bldRec({title:obj.title||'Untitled',date:obj.date||'',
+    record_type:obj.record_type||obj.type||null,platform:obj.platform||null,
+    is_recurring:!!obj.recurring,attendees:att,tags,
+    body:normStr(obj.body||obj.notes||obj.content||''),source:'json_import'});
+}
+
+// ── Standard Notes parser ────────────────────────────────────────────
+function pSN(snData){
+  const recs=[];
+  // Build tag lookup: uuid → tag name
+  const tagMap={};
+  for(const item of(snData.items||[])){
+    if(item.content_type==='SN|Tag'&&item.content&&item.content.title)
+      tagMap[item.uuid]=item.content.title.toLowerCase().trim().replace(/\s+/g,'-');
+  }
+  for(const item of(snData.items||[])){
+    if(item.content_type!=='Note')continue;
+    const c=item.content||{};
+    if(c.trashed)continue;
+    if(len(c.text||'')>75000){log(`SN note too large, skipped: ${c.title}`,'warn');continue;}
+    const title=normStr((c.title||'').trim())||'Untitled';
+    const date=nD(item.created_at)||new Date().toISOString().slice(0,10);
+    const updatedAt=item.updated_at||null;
+    const body=normStr(c.text||'');
+    // Resolve SN tag references
+    const snTags=(c.references||[])
+      .map(r=>tagMap[r.uuid]).filter(Boolean);
+    // Infer record type from title
+    let rt=cRT(title);
+    if(/^JOURNAL:/i.test(title)||/\d{1,2},\s+\d{4}\s+at\s+\d/i.test(title))rt='debrief';
+    if(c.archived)rt='reference';
+    const r=bldRec({title,date,record_type:rt,tags:snTags,
+      body,source:'standard_notes',document_id:item.uuid,
+      raw_timestamp:item.created_at,updated_at:updatedAt});
+    r.record_id=item.uuid; // use SN uuid as stable ID
+    r.pinned=!!c.pinned;
+    recs.push(r);
+  }
+  return recs;
+}
+function len(s){return(s||'').length;}
+
+// ── Contact CSV parser ────────────────────────────────────────────────
+function pConCSV(text){
+  const rows=pCSVTxt(text);
+  if(!rows.length)return[];
+  // Detect header: name,role,org,domain,aliases,notes
+  const contacts=[];
+  for(const row of rows){
+    const name=(row['name']||row['Name']||row['NAME']||'').trim();
+    if(!name)continue;
+    contacts.push({
+      contact_id:cuid(name),name,
+      role:(row['role']||row['Role']||'').trim(),
+      org:(row['org']||row['Org']||row['organization']||'').trim(),
+      domain:(row['domain']||row['Domain']||'institutional').trim(),
+      aliases:(row['aliases']||row['Aliases']||'').split(',').map(s=>s.trim()).filter(Boolean),
+      notes:(row['notes']||row['Notes']||'').trim(),
+    });
+  }
+  return contacts;
+}
+
+// ── Tags CSV parser ───────────────────────────────────────────────────
+function pTagsCSV(text){
+  const tags=new Set();
+  const rows=pCSVTxt(text);
+  if(rows.length&&('tag' in rows[0]||'Tag' in rows[0]||'tags' in rows[0])){
+    for(const row of rows){
+      const t=(row['tag']||row['Tag']||row['tags']||'').trim().toLowerCase().replace(/\s+/g,'-');
+      if(t)tags.add(t);
+    }
+  }else{
+    // Plain list — one tag per line
+    for(const line of text.split('\n')){
+      const t=line.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');
+      if(t&&t!=='tag'&&t!=='tags')tags.add(t);
+    }
+  }
+  return [...tags];
+}
+
+// ── RFC 4180 CSV text parser ─────────────────────────────────────────
+function pCSVTxt(text){
+  if(!text)return[];
+  const rows=[];let headers=null,fields=[],cur='',inQ=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQ){if(c==='"'){if(text[i+1]==='"'){cur+='"';i++;}else inQ=false;}else cur+=c;}
+    else{if(c==='"')inQ=true;else if(c===','){fields.push(cur);cur='';}
+    else if(c==='\r'){}
+    else if(c==='\n'){fields.push(cur);cur='';
+      if(!headers){headers=fields.map(h=>h.trim());}
+      else if(fields.length>=2){const row={};headers.forEach((h,j)=>{row[h]=normStr(fields[j]||'');});rows.push(row);}
+      fields=[];}else cur+=c;}
+  }
+  if(fields.length||cur){fields.push(cur);
+    if(headers&&fields.length>=2){const row={};headers.forEach((h,j)=>{row[h]=normStr(fields[j]||'');});rows.push(row);}}
+  return rows;
+}
+
+// ── CONTACTS ──────────────────────────────────────────────────────────
+function seedCons(recs){
+  const ex=new Set((AR.contacts||[]).map(c=>c.name.toLowerCase()));
+  const oc={};
+  for(const r of recs)for(const a of(r.action_items||[])){
+    const o=a.owner;
+    if(o&&!['JJMD','Team','All','Anonymous'].includes(o))oc[o]=(oc[o]||0)+1;
+  }
+  let added=0;
+  for(const[name]of Object.entries(oc)){
+    if(!ex.has(name.toLowerCase())){
+      AR.contacts.push({contact_id:cuid(name),name,role:'',org:'',domain:'institutional',aliases:[],notes:'',_auto_seeded:true});
+      ex.add(name.toLowerCase());added++;
+    }
+  }
+  if(added)log(`Auto-seeded ${added} contacts`,'ok');
+  crmDirty=true;
+  return added;
+}
+
+function mergeContacts(newCons){
+  const existing=AR.contacts||[];
+  let added=0,updated=0;
+  for(const nc of newCons){
+    const idx=existing.findIndex(c=>
+      c.name.toLowerCase()===nc.name.toLowerCase()||
+      (c.aliases||[]).some(a=>a.toLowerCase()===nc.name.toLowerCase()));
+    if(idx>=0){
+      // Upgrade auto-seeded with real data
+      if(existing[idx]._auto_seeded){
+        AR.contacts[idx]={...existing[idx],...nc,_auto_seeded:false};updated++;
+      }
+    }else{
+      AR.contacts.push(nc);added++;
+    }
+  }
+  crmDirty=true;
+  return{added,updated};
+}
+
+function findCon(q){
+  const lq=q.toLowerCase();
+  return(AR.contacts||[]).filter(c=>c.name.toLowerCase().includes(lq)||(c.aliases||[]).some(a=>a.toLowerCase().includes(lq))||(c.org||'').toLowerCase().includes(lq));
+}
+
+// ── TAG RECONCILIATION ───────────────────────────────────────────────
+function reconcileTags(newTags){
+  // Mark tags that are genuinely new (not already in any record)
+  const existing=new Set();
+  for(const r of AR.registry)(r.tags||[]).forEach(t=>existing.add(t));
+  for(const t of newTags){if(!existing.has(t)){AR.newTags.add(t);}}
+}
+
+function clearNewTagFlags(){AR.newTags=new Set();renderTagsLeft();document.getElementById('clearNewBtn').style.display='none';}
+
+// ── ARCHIVE ────────────────────────────────────────────────────────────
+function addRecs(newR){
+  const ids=new Set(AR.registry.map(r=>r.record_id));
+  let added=0,dupes=0;
+  for(const r of newR){if(ids.has(r.record_id))dupes++;else{AR.registry.push(r);ids.add(r.record_id);added++;}}
+  AR.manifest.record_count=AR.registry.length;AR.manifest.last_modified=new Date().toISOString();
+  if(!AR.manifest.created_at)AR.manifest.created_at=new Date().toISOString();
+  AR.manifest.schema_version=1;AR.manifest.parser_version='1.4.0-web';AR.manifest.enriched=false;
+  crmDirty=true;
+  return{added,dupes};
+}
+
+// ── RECORD LIST ────────────────────────────────────────────────────────
+const sortFns={
+  'date-d':(a,b)=>(b.date||'').localeCompare(a.date||''),
+  'date-a':(a,b)=>(a.date||'').localeCompare(b.date||''),
+  'title': (a,b)=>(a.title||'').localeCompare(b.title||''),
+  'type':  (a,b)=>(a.record_type||'').localeCompare(b.record_type||'')||(b.date||'').localeCompare(a.date||''),
+};
+
+function setSort(s){curSort=s;document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('on'));const el=document.getElementById('srt-'+s);if(el)el.classList.add('on');renderList();}
+
+function renderList(){
+  const list=document.getElementById('recList'),empty=document.getElementById('lEmpty');
+  let recs=[...AR.registry].sort(sortFns[curSort]||sortFns['date-d']);
+  const q=(document.getElementById('srch').value||'').toLowerCase().trim();
+  if(q)recs=recs.filter(r=>r.title.toLowerCase().includes(q)||(r.tags||[]).some(t=>t.includes(q))||(r.record_type||'').includes(q));
+  list.querySelectorAll('.ri').forEach(e=>e.remove());
+  if(!recs.length){empty.style.display='';return;}
+  empty.style.display='none';
+  for(const r of recs){
+    const div=document.createElement('div');
+    const thi=aTF&&(r.tags||[]).includes(aTF)&&r.record_id!==selId;
+    div.className='ri'+(r.record_id===selId?' act':'')+(thi?' thi':'');
+    div.dataset.id=r.record_id;
+    const sc={granola_csv:'b-csv',free_text:'b-txt',json_import:'b-jsn',standard_notes:'b-sn'}[r.source]||'b-txt';
+    const sl={granola_csv:'CSV',free_text:'TXT',json_import:'JSON',standard_notes:'SN'}[r.source]||'TXT';
+    const qd={HIGH:'q-hi',MEDIUM:'q-md',LOW:'q-lo'}[r.parse_quality.confidence]||'q-lo';
+    const ac=r.action_items.length,sv=r.action_items.filter(a=>a.sovereign_action).length;
+    const tp=(r.tags||[]).map(t=>`<span class="rtag" onclick="event.stopPropagation();setTF('${esc(t)}')">${esc(t)}</span>`).join('');
+    div.innerHTML=`<div class="ri-t">${esc(r.title)}</div><div class="ri-m"><span class="badge ${sc}">${sl}</span><span class="badge b-typ">${r.record_type||'meeting'}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;">${r.date||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-family:'IBM Plex Mono',monospace;"><span class="qdot ${qd}"></span>${r.parse_quality.confidence}</span>${ac?`<span style="font-size:9px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">${ac}act·${sv}sov</span>`:''}</div>${tp?`<div class="ri-tags">${tp}</div>`:''}<button class="ri-del" onclick="dlRec(event,'${r.record_id}')">×</button>`;
+    div.addEventListener('click',()=>selRec(r.record_id));
+    list.appendChild(div);
+  }
+  document.getElementById('rCnt').textContent=AR.registry.length;
+}
+
+// FIXED: selRec uses targeted DOM class swap instead of full renderList rebuild
+function selRec(id){
+  const prev=selId;selId=id;
+  // Targeted swap: remove active from previous, add to new
+  if(prev){const el=document.querySelector(`.ri[data-id="${prev}"]`);if(el){el.classList.remove('act');}}
+  const next=document.querySelector(`.ri[data-id="${id}"]`);
+  if(next){next.classList.add('act');next.classList.remove('thi');}
+  renderDet();
+}
+
+function dlRec(e,id){
+  e.stopPropagation();AR.registry=AR.registry.filter(r=>r.record_id!==id);
+  if(selId===id)selId=null;AR.manifest.record_count=AR.registry.length;
+  crmDirty=true;renderList();renderDet();updStats();renderSum();log('Record deleted','warn');
+}
+function setTF(t){aTF=t;document.getElementById('tfl').textContent=t;document.getElementById('tfc').classList.add('show');renderList();}
+function clrTF(){aTF=null;document.getElementById('tfc').classList.remove('show');renderList();}
+function togS(id){document.getElementById(id).classList.toggle('coll');}
+
+// ── DETAIL EDITOR ──────────────────────────────────────────────────────
+function renderDet(){
+  const emp=document.getElementById('dEmpty'),ed=document.getElementById('dEd');
+  if(!selId){emp.style.display='';ed.style.display='none';return;}
+  const r=AR.registry.find(r=>r.record_id===selId);
+  if(!r){emp.style.display='';ed.style.display='none';return;}
+  emp.style.display='none';ed.style.display='flex';
+  document.getElementById('dTit').value=r.title||'';
+  const sb=document.getElementById('dSrc');
+  sb.textContent={granola_csv:'CSV',free_text:'TXT',json_import:'JSON',standard_notes:'SN'}[r.source]||'TXT';
+  sb.className='badge '+({granola_csv:'b-csv',free_text:'b-txt',json_import:'b-jsn',standard_notes:'b-sn'}[r.source]||'b-txt');
+  const qb=document.getElementById('dQ');
+  const qm={HIGH:['#065f46','var(--green)','#021a11'],MEDIUM:['#78350f','var(--amber)','#1c1008'],LOW:['#7f1d1d','var(--red)','#1a0404']};
+  const[bc,tc,bg]=qm[r.parse_quality.confidence]||qm.HIGH;
+  qb.style.cssText=`font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 6px;border-radius:3px;border:1px solid ${bc};color:${tc};background:${bg};`;
+  qb.textContent=r.parse_quality.confidence;
+  document.getElementById('fDt').value=r.date||'';
+  document.getElementById('fRT').value=r.record_type||'meeting';
+  document.getElementById('fMT').value=r.meeting_type||'unknown';
+  document.getElementById('fPL').value=r.platform||'unknown';
+  document.getElementById('fPC').textContent=r.platform_confidence?`(${r.platform_confidence})`:'';
+  document.getElementById('fRC').checked=!!r.is_recurring;
+  const isMtg=['meeting','debrief'].includes(r.record_type||'meeting');
+  ['fMTr','fPLr','fRCr'].forEach(id=>document.getElementById(id).style.display=isMtg?'':'none');
+  document.getElementById('attS').style.display=isMtg?'':'none';
+  renderTags(r.tags||[]);renderAtts(r.attendees||[]);renderActs(r.action_items||[]);
+  document.getElementById('fNt').value=r.notes_raw||r.summary_raw||'';
+  const sc=document.getElementById('qSc');
+  sc.textContent=`${r.parse_quality.confidence} (${r.parse_quality.score})`;
+  sc.className='qsc '+(r.parse_quality.confidence||'').toLowerCase();
+  document.getElementById('qIs').innerHTML=r.parse_quality.issues.map(i=>`<span>${i}</span>`).join('');
+  document.getElementById('acBdg').textContent=r.action_items.length||0;
+  document.getElementById('aBdg').textContent=(r.attendees||[]).length||0;
+}
+
+function FC(f,v){const r=AR.registry.find(r=>r.record_id===selId);if(!r)return;r[f]=v;if(f==='title'){const el=document.querySelector(`.ri[data-id="${selId}"] .ri-t`);if(el)el.textContent=v;}if(f==='platform')document.getElementById('fPC').textContent='(manual)';}
+function onRT(v){FC('record_type',v);const isMtg=['meeting','debrief'].includes(v);['fMTr','fPLr','fRCr'].forEach(id=>document.getElementById(id).style.display=isMtg?'':'none');document.getElementById('attS').style.display=isMtg?'':'none';}
+
+// ── TAGS ────────────────────────────────────────────────────────────────
+function renderTags(tags){const w=document.getElementById('tw'),inp=document.getElementById('tIn');w.querySelectorAll('.tpill').forEach(e=>e.remove());for(const t of tags){const p=document.createElement('span');p.className='tpill';p.innerHTML=`${esc(t)}<span class="tx" onclick="rmTag('${esc(t)}')">×</span>`;w.insertBefore(p,inp);}}
+function focusTI(){document.getElementById('tIn').focus();}
+function tkd(e){const inp=e.target;if(e.key==='Enter'||e.key===','||e.key===' '){e.preventDefault();const v=inp.value.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');if(v)addTag(v);inp.value='';hideTS();}else if(e.key==='Backspace'&&!inp.value){const r=AR.registry.find(r=>r.record_id===selId);if(r&&r.tags&&r.tags.length){r.tags.pop();renderTags(r.tags);}}}
+function tinput(v){if(v.length>=1)showTS(v);}
+function addTag(tag){const r=AR.registry.find(r=>r.record_id===selId);if(!r)return;if(!(r.tags||[]).includes(tag)){r.tags=r.tags||[];r.tags.push(tag);renderTags(r.tags);}}
+function rmTag(tag){const r=AR.registry.find(r=>r.record_id===selId);if(!r)return;r.tags=(r.tags||[]).filter(t=>t!==tag);renderTags(r.tags);}
+function showTS(q=''){const sug=document.getElementById('tsug');const all={};for(const r of AR.registry)(r.tags||[]).forEach(t=>{all[t]=(all[t]||0)+1;});const r=AR.registry.find(r=>r.record_id===selId);const cur=new Set(r?r.tags||[]:[]);const matches=Object.entries(all).filter(([t])=>!cur.has(t)&&(q?t.includes(q.toLowerCase()):true)).sort((a,b)=>b[1]-a[1]).slice(0,8);if(!matches.length){sug.style.display='none';return;}sug.innerHTML=matches.map(([t,c])=>`<div class="tsi" onmousedown="addTag('${esc(t)}');document.getElementById('tIn').value='';hideTS()">${esc(t)} <span style="color:var(--muted);font-size:9px;">${c}</span></div>`).join('');sug.style.display='block';}
+function hideTS(){document.getElementById('tsug').style.display='none';}
+
+// ── ATTENDEES ────────────────────────────────────────────────────────
+function renderAtts(atts){const list=document.getElementById('aList');list.innerHTML='';atts.forEach((a,i)=>{const row=document.createElement('div');row.className='ar';row.innerHTML=`<div class="anw"><input class="ani" value="${esc(a.name||'')}" placeholder="Name" oninput="updA(${i},'name',this.value);shCD(${i},this.value,this)" onblur="setTimeout(()=>hdCD(${i}),180)" autocomplete="off"><div class="cdrop" id="cd${i}"></div></div><input class="ari" value="${esc(a.role||'')}" placeholder="Role (optional)" oninput="updA(${i},'role',this.value)"><button class="adel" onclick="rmAtt(${i})">×</button>`;list.appendChild(row);});document.getElementById('aBdg').textContent=atts.length||0;}
+function shCD(i,q,inp){const dd=document.getElementById(`cd${i}`);if(!q||q.length<1){dd.classList.remove('show');return;}const m=findCon(q);if(!m.length){dd.classList.remove('show');return;}dd.innerHTML=m.slice(0,6).map(c=>`<div class="cdi" onmousedown="selC(${i},'${esc(c.name)}','${esc(c.role||'')}')"><div class="cdn">${esc(c.name)}</div><div class="cdm">${[c.role,c.org].filter(Boolean).join(' · ')}</div></div>`).join('');dd.classList.add('show');}
+function hdCD(i){const dd=document.getElementById(`cd${i}`);if(dd)dd.classList.remove('show');}
+function selC(i,name,role){const r=AR.registry.find(r=>r.record_id===selId);if(!r)return;r.attendees[i]={name,role:role||r.attendees[i]?.role||''};renderAtts(r.attendees);hdCD(i);}
+function updA(i,f,v){const r=AR.registry.find(r=>r.record_id===selId);if(!r||!r.attendees[i])return;r.attendees[i][f]=v;}
+function rmAtt(i){const r=AR.registry.find(r=>r.record_id===selId);if(!r)return;r.attendees.splice(i,1);renderAtts(r.attendees);}
+function addAtt(){const r=AR.registry.find(r=>r.record_id===selId);if(!r)return;r.attendees=r.attendees||[];r.attendees.push({name:'',role:null});renderAtts(r.attendees);}
+
+// ── ACTION ITEMS ────────────────────────────────────────────────────
+function renderActs(items){const list=document.getElementById('acList');list.innerHTML='';items.forEach((a,i)=>{const row=document.createElement('div');row.className='acr'+(a.sovereign_action?' sov':'');const dlVal=a.deadline&&/^\d{4}-\d{2}-\d{2}$/.test(a.deadline)?a.deadline:'';const dlNote=a.deadline&&!/^\d{4}-\d{2}-\d{2}$/.test(a.deadline)?a.deadline:a.deadline_note||'';row.innerHTML=`<input class="aown${a.sovereign_action?'':' oth'}" value="${esc(a.owner||'')}" placeholder="Owner" oninput="updAc(${i},'owner',this.value)"><textarea class="atxt" rows="2" oninput="updAc(${i},'action',this.value)">${esc(a.action||'')}</textarea><input type="date" class="adl" value="${esc(dlVal)}" title="Due date" oninput="updAcDl(${i},this.value,'date')"><input class="adnote" value="${esc(dlNote)}" placeholder="or note…" oninput="updAcDl(${i},this.value,'note')"><button class="ats${a.time_sensitive?' on':''}" title="Time-sensitive" onclick="togTS(${i})">⚡</button><button class="axd" onclick="rmAc(${i})">×</button>`;list.appendChild(row);});document.getElementById('acBdg').textContent=items.length||0;}
+function updAc(i,f,v){const r=AR.registry.find(r=>r.record_id===selId);if(!r||!r.action_items[i])return;r.action_items[i][f]=v;if(f==='owner'){r.action_items[i].sovereign_action=['JJMD','Jean','JJ'].includes(v);renderActs(r.action_items);}updStats();}
+function updAcDl(i,v,mode){const r=AR.registry.find(r=>r.record_id===selId);if(!r||!r.action_items[i])return;if(mode==='date')r.action_items[i].deadline=v||null;else r.action_items[i].deadline_note=v||null;}
+function togTS(i){const r=AR.registry.find(r=>r.record_id===selId);if(!r)return;r.action_items[i].time_sensitive=!r.action_items[i].time_sensitive;renderActs(r.action_items);}
+function rmAc(i){const r=AR.registry.find(r=>r.record_id===selId);if(!r)return;r.action_items.splice(i,1);renderActs(r.action_items);updStats();renderSum();}
+function addAct(){const r=AR.registry.find(r=>r.record_id===selId);if(!r)return;r.action_items.push({action:'',owner:'JJMD',sovereign_action:true,deadline:null,deadline_note:null,time_sensitive:false,source_section:'manual',status:'open'});renderActs(r.action_items);}
+
+// ── NOTES MODAL ─────────────────────────────────────────────────────
+function oNM(){const r=AR.registry.find(r=>r.record_id===selId);if(!r)return;document.getElementById('nmTit').textContent=r.title||'Notes';const ta=document.getElementById('nmTA');ta.value=r.notes_raw||r.summary_raw||'';updNMC(ta.value);document.getElementById('nmOv').classList.add('show');setTimeout(()=>ta.focus(),50);}
+function onNMI(v){FC('notes_raw',v);document.getElementById('fNt').value=v;updNMC(v);}
+function updNMC(v){const l=v.split('\n').length,w=v.trim().split(/\s+/).filter(Boolean).length;document.getElementById('nmCnt').textContent=`${l} lines · ${w} words`;}
+function cNM(){document.getElementById('nmOv').classList.remove('show');}
+
+// ── CONTACTS MODAL ───────────────────────────────────────────────────
+function oCon(){conSelected=new Set();rndConM();document.getElementById('conSelAll').checked=false;document.getElementById('conBulkBar').classList.remove('show');document.getElementById('conOv').classList.add('show');}
+function cCon(){document.getElementById('conOv').classList.remove('show');}
+
+function rndConM(){
+  const body=document.getElementById('conBody');
+  const cs=AR.contacts||[];
+  if(!cs.length){body.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px;">No contacts yet. Import CSV or add manually.</div>';return;}
+  body.innerHTML=cs.sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`
+    <div class="con-row${conSelected.has(c.contact_id)?' sel':''}" id="crow-${c.contact_id}">
+      <input type="checkbox" class="con-cb" ${conSelected.has(c.contact_id)?'checked':''} onchange="toggleConSel('${c.contact_id}',this.checked)">
+      <div class="con-avatar">${esc(c.name.slice(0,2).toUpperCase())}</div>
+      <div class="con-info">
+        <div class="con-name">${esc(c.name)}${c._auto_seeded?'<span style="font-size:8px;color:var(--muted);margin-left:6px;font-family:\'IBM Plex Mono\',monospace;">auto</span>':''}</div>
+        <div class="con-meta">${[c.role,c.org].filter(Boolean).join(' · ')||'—'}</div>
+      </div>
+      <div class="con-domain">${c.domain}</div>
+      <button onclick="openCE('${c.contact_id}')" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:3px 6px;" onmouseover="this.style.color='var(--blue2)'" onmouseout="this.style.color='var(--muted)'">✎</button>
+    </div>`).join('');
+}
+
+function toggleConSel(id,checked){
+  if(checked)conSelected.add(id);else conSelected.delete(id);
+  const row=document.getElementById(`crow-${id}`);if(row)row.classList.toggle('sel',checked);
+  document.getElementById('conBulkCount').textContent=`${conSelected.size} selected`;
+  document.getElementById('conBulkBar').classList.toggle('show',conSelected.size>0);
+}
+
+function toggleSelAll(checked){
+  const cs=AR.contacts||[];
+  cs.forEach(c=>{if(checked)conSelected.add(c.contact_id);else conSelected.delete(c.contact_id);});
+  rndConM();
+  document.getElementById('conBulkCount').textContent=`${conSelected.size} selected`;
+  document.getElementById('conBulkBar').classList.toggle('show',conSelected.size>0);
+}
+
+function bulkDelContacts(){
+  if(!conSelected.size)return;
+  if(!confirm(`Delete ${conSelected.size} contact${conSelected.size>1?'s':''}? This cannot be undone.`))return;
+  AR.contacts=(AR.contacts||[]).filter(c=>!conSelected.has(c.contact_id));
+  conSelected=new Set();document.getElementById('conBulkBar').classList.remove('show');
+  document.getElementById('conSelAll').checked=false;
+  rndConM();rndConPrev();updStats();crmDirty=true;
+  log(`Deleted contacts`,'warn');
+}
+
+function openCE(id){ceId=id;const c=id?(AR.contacts||[]).find(c=>c.contact_id===id):null;document.getElementById('ceTit').textContent=c?'EDIT CONTACT':'NEW CONTACT';document.getElementById('ceNm').value=c?c.name:'';document.getElementById('ceRl').value=c?c.role:'';document.getElementById('ceOg').value=c?c.org:'';document.getElementById('ceDm').value=c?c.domain:'institutional';document.getElementById('ceAl').value=c?(c.aliases||[]).join(', '):'';document.getElementById('ceNo').value=c?c.notes:'';document.getElementById('ceDlBtn').style.display=c?'':'none';document.getElementById('ceOv').classList.add('show');}
+function cCE(){document.getElementById('ceOv').classList.remove('show');}
+function savCon(){const name=document.getElementById('ceNm').value.trim();if(!name){alert('Name required');return;}const con={contact_id:ceId||cuid(name+Date.now()),name,role:document.getElementById('ceRl').value.trim(),org:document.getElementById('ceOg').value.trim(),domain:document.getElementById('ceDm').value,aliases:document.getElementById('ceAl').value.split(',').map(s=>s.trim()).filter(Boolean),notes:document.getElementById('ceNo').value.trim()};if(!AR.contacts)AR.contacts=[];if(ceId){const idx=AR.contacts.findIndex(c=>c.contact_id===ceId);if(idx>=0)AR.contacts[idx]=con;}else AR.contacts.push(con);cCE();rndConM();rndConPrev();updStats();crmDirty=true;log(`Contact saved: ${name}`,'ok');}
+function delCon(){if(!ceId||!confirm('Delete this contact?'))return;AR.contacts=(AR.contacts||[]).filter(c=>c.contact_id!==ceId);cCE();rndConM();rndConPrev();updStats();crmDirty=true;log('Contact deleted','warn');}
+function rndConPrev(){const cp=document.getElementById('cPrev');const cs=(AR.contacts||[]).slice(0,5);if(!cs.length){cp.innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0;">No contacts</div>';return;}cp.innerHTML=cs.map(c=>`<div class="ci"><div class="cav">${esc(c.name.slice(0,2).toUpperCase())}</div><div class="cnf"><div class="cnm">${esc(c.name)}</div><div class="cmt">${[c.role,c.org].filter(Boolean).join(' · ')||'—'}</div></div></div>`).join('')+((AR.contacts||[]).length>5?`<div style="font-size:10px;color:var(--muted);padding:4px 2px;">+${(AR.contacts||[]).length-5} more</div>`:'');}
+
+// ── TAG MANAGER MODAL ────────────────────────────────────────────────
+function oTags(){rndTM();document.getElementById('tmOv').classList.add('show');}
+function cTags(){document.getElementById('tmOv').classList.remove('show');}
+function rndTM(){
+  const list=document.getElementById('tmList');
+  const counts={};for(const r of AR.registry)(r.tags||[]).forEach(t=>{counts[t]=(counts[t]||0)+1;});
+  const tags=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  if(!tags.length){list.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-family:\'IBM Plex Mono\',monospace;font-size:11px;">No tags yet.</div>';return;}
+  list.innerHTML=tags.map(([t,c])=>`<div class="tm-row"><span class="tm-pill">${esc(t)}</span><input class="tm-rename" value="${esc(t)}" data-orig="${esc(t)}" onchange="renameTag(this.dataset.orig,this.value);this.dataset.orig=this.value;" onkeydown="if(event.key==='Enter')this.blur()"><span class="tm-cnt">${c}</span><button class="tm-del" onclick="deleteTag('${esc(t)}')">×</button></div>`).join('');
+}
+function renameTag(oldTag,newTag){newTag=newTag.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');if(!newTag||newTag===oldTag)return;for(const r of AR.registry){if(!r.tags)continue;const idx=r.tags.indexOf(oldTag);if(idx>=0)r.tags[idx]=newTag;}if(aTF===oldTag)aTF=newTag;const r=AR.registry.find(r=>r.record_id===selId);if(r)renderTags(r.tags||[]);renderList();rndTM();renderTagsLeft();log(`Tag renamed: ${oldTag} → ${newTag}`,'ok');}
+function deleteTag(tag){if(!confirm(`Remove tag "${tag}" from all records?`))return;for(const r of AR.registry)r.tags=(r.tags||[]).filter(t=>t!==tag);if(aTF===tag)clrTF();const r=AR.registry.find(r=>r.record_id===selId);if(r)renderTags(r.tags||[]);renderList();rndTM();renderTagsLeft();log(`Tag deleted: ${tag}`,'warn');}
+
+// ── VIEW SWITCHING ───────────────────────────────────────────────────
+function setView(v){
+  curView=v;
+  document.getElementById('ws').style.display=v==='notes'?'flex':'none';
+  document.getElementById('crmWs').style.display=v==='crm'?'flex':'none';
+  document.getElementById('tagsWs').style.display=v==='tags'?'flex':'none';
+  ['vNotes','vCrm','vTags'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  document.getElementById({notes:'vNotes',crm:'vCrm',tags:'vTags'}[v]).classList.add('on');
+  if(v==='crm'){if(crmDirty){buildCrmIndex();crmDirty=false;}renderCrmLeft();}
+  if(v==='tags')renderTagsLeft();
+}
+
+// ── CRM ─────────────────────────────────────────────────────────────
+function buildCrmIndex(){
+  crmIdx={};
+  for(const c of(AR.contacts||[]))crmIdx[c.contact_id]={records:[],actions:[]};
+  for(const r of AR.registry){
+    for(const a of(r.attendees||[])){const con=matchCon(a.name);if(con&&crmIdx[con.contact_id]&&!crmIdx[con.contact_id].records.find(x=>x.record_id===r.record_id))crmIdx[con.contact_id].records.push(r);}
+    for(const a of(r.action_items||[])){if(a.sovereign_action)continue;const con=matchCon(a.owner);if(con&&crmIdx[con.contact_id]){if(!crmIdx[con.contact_id].records.find(x=>x.record_id===r.record_id))crmIdx[con.contact_id].records.push(r);crmIdx[con.contact_id].actions.push({...a,_from:r.title,_date:r.date});}}
+  }
+}
+
+function matchCon(name){if(!name)return null;const n=name.toLowerCase();return(AR.contacts||[]).find(c=>c.name.toLowerCase()===n||(c.aliases||[]).some(a=>a.toLowerCase()===n));}
+
+function renderCrmLeft(){
+  const list=document.getElementById('crmConList');
+  const q=(document.getElementById('crmSrch').value||'').toLowerCase();
+  let cons=[...(AR.contacts||[])].sort((a,b)=>a.name.localeCompare(b.name));
+  if(q)cons=cons.filter(c=>c.name.toLowerCase().includes(q)||(c.org||'').toLowerCase().includes(q)||(c.role||'').toLowerCase().includes(q));
+  document.getElementById('crmConCnt').textContent=(AR.contacts||[]).length;
+  if(!cons.length){list.innerHTML='<div class="ep"><div class="es">No contacts. Import CSV or add in Contacts.</div></div>';return;}
+  list.innerHTML='';
+  for(const c of cons){
+    const div=document.createElement('div');
+    const idx=crmIdx[c.contact_id]||{records:[],actions:[]};
+    div.className='crm-con-item'+(crmSelId===c.contact_id?' act':'');
+    div.innerHTML=`<div class="crm-av">${esc(c.name.slice(0,2).toUpperCase())}</div><div class="crm-cinfo"><div class="crm-cname">${esc(c.name)}</div><div class="crm-cmeta">${esc(c.org||c.role||'—')}</div></div><span class="crm-cbadge">${idx.records.length}</span>`;
+    div.onclick=()=>selCrmCon(c.contact_id);list.appendChild(div);
+  }
+}
+
+function selCrmCon(id){crmSelId=id;renderCrmLeft();renderCrmMid();renderCrmRight();}
+
+function renderCrmMid(){
+  const emp=document.getElementById('crmMidEmpty'),cnt=document.getElementById('crmMidContent');
+  if(!crmSelId){emp.style.display='';cnt.style.display='none';return;}
+  const c=(AR.contacts||[]).find(c=>c.contact_id===crmSelId);
+  if(!c){emp.style.display='';cnt.style.display='none';return;}
+  emp.style.display='none';cnt.style.display='flex';
+  document.getElementById('crmMidName').textContent=c.name;
+  document.getElementById('crmMidMeta').textContent=[c.role,c.org,c.domain].filter(Boolean).join(' · ')||'No details';
+  const idx=crmIdx[crmSelId]||{records:[],actions:[]};
+  const recs=[...idx.records].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  document.getElementById('crmMidStats').textContent=`${recs.length} record${recs.length!==1?'s':''} · ${idx.actions.length} action${idx.actions.length!==1?'s':''}`;
+  const midList=document.getElementById('crmMidList');
+  if(!recs.length){midList.innerHTML='<div class="ep"><div class="es">No records for this contact</div></div>';return;}
+  midList.innerHTML=recs.map(r=>{
+    const myActs=r.action_items.filter(a=>{const con=matchCon(a.owner);return con&&con.contact_id===crmSelId;});
+    return`<div class="crm-rec-item" onclick="setView('notes');selRec('${r.record_id}')"><div class="crm-rec-title">${esc(r.title)}</div><div class="crm-rec-meta"><span style="font-family:'IBM Plex Mono',monospace;">${r.date||'—'}</span><span class="badge b-typ">${r.record_type}</span>${myActs.length?`<span style="font-size:9px;color:var(--blue2);font-family:'IBM Plex Mono',monospace;">${myActs.length} action${myActs.length!==1?'s':''}</span>`:''}</div></div>`;
+  }).join('');
+}
+
+function renderCrmRight(){
+  const emp=document.getElementById('crmRightEmpty'),cnt=document.getElementById('crmRightContent');
+  if(!crmSelId){emp.style.display='';cnt.style.display='none';return;}
+  const c=(AR.contacts||[]).find(c=>c.contact_id===crmSelId);
+  if(!c){emp.style.display='';cnt.style.display='none';return;}
+  emp.style.display='none';cnt.style.display='flex';
+  const idx=crmIdx[crmSelId]||{records:[],actions:[]};
+  const openActs=idx.actions.filter(a=>a.status==='open');
+  const scroll=document.getElementById('crmDetailScroll');
+  const fields=[
+    c.role?`<div class="crm-field"><span class="crm-fl">Role</span><span class="crm-fv">${esc(c.role)}</span></div>`:'',
+    c.org?`<div class="crm-field"><span class="crm-fl">Org</span><span class="crm-fv">${esc(c.org)}</span></div>`:'',
+    `<div class="crm-field"><span class="crm-fl">Domain</span><span class="crm-fv">${esc(c.domain)}</span></div>`,
+    (c.aliases||[]).length?`<div class="crm-field"><span class="crm-fl">Aliases</span><span class="crm-fv">${esc(c.aliases.join(', '))}</span></div>`:'',
+    c.notes?`<div class="crm-field"><span class="crm-fl">Notes</span><span class="crm-fv" style="color:var(--text2);">${esc(c.notes)}</span></div>`:'',
+  ].filter(Boolean).join('');
+  const timeline=[...idx.records].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(r=>`<div class="crm-tl-item" onclick="setView('notes');selRec('${r.record_id}')"><span class="crm-tl-date">${r.date||'—'}</span><span class="crm-tl-title">${esc(r.title)}</span></div>`).join('')||'<span style="color:var(--muted);font-size:10px;">No records</span>';
+  const actHtml=openActs.map(a=>`<div class="crm-act-item"><div class="crm-act-owner">${esc(a._from||'')} · ${esc(a._date||'')}</div><div class="crm-act-text">${esc(a.action)}</div>${a.deadline?`<div class="crm-act-dl">Due: ${esc(a.deadline)}</div>`:''}${a.deadline_note?`<div class="crm-act-dl">${esc(a.deadline_note)}</div>`:''}</div>`).join('');
+  scroll.innerHTML=`
+    <div class="crm-card"><div class="crm-card-title">Profile</div>${fields}
+      <div style="margin-top:8px;"><button class="crm-edit-btn" onclick="oCon();openCE('${c.contact_id}')">✎ edit</button></div>
+    </div>
+    ${openActs.length?`<div class="crm-card"><div class="crm-card-title">Open Actions (${openActs.length})</div>${actHtml}</div>`:''}
+    <div class="crm-card"><div class="crm-card-title">Record Timeline (${idx.records.length})</div>${timeline}</div>`;
+}
+
+// ── TAGS WORKSPACE ────────────────────────────────────────────────────
+function renderTagsLeft(){
+  const list=document.getElementById('tagsLeftList');
+  const q=(document.getElementById('tagsSrch').value||'').toLowerCase();
+  const counts={};for(const r of AR.registry)(r.tags||[]).forEach(t=>{counts[t]=(counts[t]||0)+1;});
+  let tags=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  if(q)tags=tags.filter(([t])=>t.includes(q));
+  document.getElementById('tagsLeftCnt').textContent=Object.keys(counts).length;
+  const hasNew=(AR.newTags||new Set()).size>0;
+  document.getElementById('clearNewBtn').style.display=hasNew?'':'none';
+  if(!tags.length){list.innerHTML='<div class="ep"><div class="es">No tags yet</div></div>';return;}
+  list.innerHTML='';
+  for(const[t,c]of tags){
+    const div=document.createElement('div');
+    const isNew=(AR.newTags||new Set()).has(t);
+    div.className='tag-li'+(tagsSelTag===t?' act':'');
+    div.innerHTML=`<span class="tag-li-pill">${esc(t)}</span><span style="flex:1;"></span>${isNew?'<span class="tag-li-new">new</span>':''}<span class="tag-li-cnt">${c}</span>`;
+    div.onclick=()=>selTag(t);list.appendChild(div);
+  }
+}
+
+function selTag(t){
+  tagsSelTag=t;renderTagsLeft();renderTagsMid();renderTagsRight();
+}
+
+function renderTagsMid(){
+  const emp=document.getElementById('tagsMidEmpty'),cnt=document.getElementById('tagsMidContent');
+  if(!tagsSelTag){emp.style.display='';cnt.style.display='none';return;}
+  emp.style.display='none';cnt.style.display='flex';
+  document.getElementById('tagsMidName').textContent=tagsSelTag;
+  const recs=AR.registry.filter(r=>(r.tags||[]).includes(tagsSelTag)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  document.getElementById('tagsMidStats').textContent=`${recs.length} record${recs.length!==1?'s':''}`;
+  const mid=document.getElementById('tagsMidList');
+  if(!recs.length){mid.innerHTML='<div class="ep"><div class="es">No records with this tag</div></div>';return;}
+  mid.innerHTML=recs.map(r=>`<div class="tag-rec-item" onclick="setView('notes');selRec('${r.record_id}')"><div class="tag-rec-title">${esc(r.title)}</div><div class="tag-rec-meta"><span style="font-family:'IBM Plex Mono',monospace;">${r.date||'—'}</span><span class="badge b-typ">${r.record_type}</span></div></div>`).join('');
+}
+
+function renderTagsRight(){
+  const emp=document.getElementById('tagsRightEmpty'),cnt=document.getElementById('tagsRightContent');
+  if(!tagsSelTag){emp.style.display='';cnt.style.display='none';return;}
+  emp.style.display='none';cnt.style.display='flex';
+  const recs=AR.registry.filter(r=>(r.tags||[]).includes(tagsSelTag));
+  const dates=recs.map(r=>r.date).filter(Boolean).sort();
+  const scroll=document.getElementById('tagsDetailScroll');
+  // Merge into dropdown
+  const allTags=new Set();for(const r of AR.registry)(r.tags||[]).forEach(t=>allTags.add(t));allTags.delete(tagsSelTag);
+  const mergeOpts=[...allTags].sort().map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  scroll.innerHTML=`
+    <div class="crm-card">
+      <div class="crm-card-title">Tag: ${esc(tagsSelTag)}</div>
+      <div class="crm-field"><span class="crm-fl">Records</span><span class="crm-fv">${recs.length}</span></div>
+      ${dates.length?`<div class="crm-field"><span class="crm-fl">First seen</span><span class="crm-fv">${dates[0]}</span></div><div class="crm-field"><span class="crm-fl">Last seen</span><span class="crm-fv">${dates[dates.length-1]}</span></div>`:''}
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
+        <div class="mlb">Rename</div>
+        <div style="display:flex;gap:6px;">
+          <input class="fin" id="tagRenameIn" value="${esc(tagsSelTag)}" style="flex:1;">
+          <button class="sbtn on" onclick="doRenameTag()">Apply</button>
+        </div>
+        <div class="mlb" style="margin-top:4px;">Merge into</div>
+        <div style="display:flex;gap:6px;">
+          <select class="fs" id="tagMergeIn" style="flex:1;"><option value="">— select target —</option>${mergeOpts}</select>
+          <button class="sbtn on" onclick="doMergeTag()">Merge</button>
+        </div>
+        <button class="mbd" style="margin-top:4px;padding:5px 10px;font-size:10px;" onclick="deleteTag('${esc(tagsSelTag)}');tagsSelTag=null;renderTagsMid();renderTagsRight();">Delete tag</button>
+      </div>
+    </div>`;
+}
+
+function doRenameTag(){const v=document.getElementById('tagRenameIn').value.trim().toLowerCase().replace(/\s+/g,'-');if(v&&v!==tagsSelTag){renameTag(tagsSelTag,v);tagsSelTag=v;renderTagsRight();}}
+function doMergeTag(){const target=document.getElementById('tagMergeIn').value;if(!target)return;if(!confirm(`Merge "${tagsSelTag}" into "${target}"? All records tagged "${tagsSelTag}" will receive "${target}" instead.`))return;renameTag(tagsSelTag,target);tagsSelTag=target;renderTagsLeft();renderTagsMid();renderTagsRight();}
+
+// ── INGEST MODAL ──────────────────────────────────────────────────────
+function oIM(tab){curTab=tab||'csv';swTab(curTab);clrIM();document.getElementById('imOv').classList.add('show');}
+function cIM(){document.getElementById('imOv').classList.remove('show');pending=[];clrIM();}
+function clrIM(){
+  ['C','J','SN','T','CC','TC'].forEach(x=>{
+    const s=document.getElementById(`sb${x}`);if(s)s.style.display='none';
+    const p=document.getElementById(`pv${x}`);if(p)p.style.display='none';
+  });
+  ['dzC','dzJ','dzSN','dzCC','dzTC'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('ok');});
+  const pa=document.getElementById('paTA');if(pa)pa.value='';
+  document.getElementById('imBtn').disabled=true;document.getElementById('imCnt').textContent='';pending=[];
+}
+function swTab(t){
+  curTab=t;
+  const tabMap={csv:'C',json:'J',sn:'SN',text:'T','crm-csv':'CC','tags-csv':'TC'};
+  const idMap={csv:'iTC',json:'iTJ',sn:'iTSN',text:'iTT'};
+  const panMap={csv:'tpC',json:'tpJ',sn:'tpSN',text:'tpT','crm-csv':'tpCC','tags-csv':'tpTC'};
+  // Show correct tab button as active
+  ['iTC','iTJ','iTSN','iTT'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('on');});
+  if(idMap[t]){const el=document.getElementById(idMap[t]);if(el)el.classList.add('on');}
+  // Show correct panel
+  ['tpC','tpJ','tpSN','tpT','tpCC','tpTC'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  const pan=document.getElementById(panMap[t]);if(pan)pan.style.display='';
+  document.getElementById('imBtn').disabled=pending.length===0;
+}
+
+function dov(e,id){e.preventDefault();document.getElementById(id).classList.add('dov');}
+function dlv(id){document.getElementById(id).classList.remove('dov');}
+function odp(e,type){e.preventDefault();const dzMap={'csv':'dzC','json':'dzJ','sn':'dzSN','crm-csv':'dzCC','tags-csv':'dzTC'};const dz=document.getElementById(dzMap[type]);if(dz)dz.classList.remove('dov');const f=e.dataTransfer.files[0];if(f)dispatchFile(f,type);}
+function ofl(e,type){const f=e.target.files[0];if(f)dispatchFile(f,type);}
+
+function dispatchFile(f,type){
+  if(type==='csv')prcCSV(f);
+  else if(type==='json')prcJSON(f);
+  else if(type==='sn')prcSN(f);
+  else if(type==='crm-csv')prcConCSV(f);
+  else if(type==='tags-csv')prcTagsCSV(f);
+}
+
+function prcCSV(file){const r=new FileReader();r.onload=e=>{try{const rows=pCSVTxt(e.target.result);if(!rows.length){setSb('C','err','No rows');return;}const recs=rows.map(row=>{try{return pCSVRow(row);}catch(e){return null;}}).filter(Boolean);pending=recs;const nc=recs.filter(r=>!AR.registry.find(x=>x.record_id===r.record_id)).length;setSb('C','ok',`${recs.length} records · ${nc} new`);document.getElementById('ppC').textContent=recs.slice(0,3).map(r=>`${r.date}  ${r.title.slice(0,48)}\n  type=${r.record_type}  actions=${r.action_items.length}`).join('\n');document.getElementById('pvC').style.display='';document.getElementById('dzC').classList.add('ok');document.getElementById('dzCI').textContent='✓';document.getElementById('dzCT').textContent=file.name;document.getElementById('imBtn').disabled=false;document.getElementById('imCnt').textContent=`${nc} new`;log(`CSV: ${recs.length} records`,'ok');}catch(err){setSb('C','err','Error: '+err.message);}};r.readAsText(file);}
+
+function prcJSON(file){const r=new FileReader();r.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.registry&&Array.isArray(data.registry)){AR=data;if(!AR.contacts)AR.contacts=[];if(!AR.newTags)AR.newTags=new Set();selId=null;crmDirty=true;renderList();updStats();renderSum();renderDet();rndConPrev();cIM();log(`Archive loaded: ${AR.registry.length} records`,'ok');return;}if(!Array.isArray(data)){setSb('J','err','Expected array or archive');return;}const recs=data.map(obj=>pJN(obj));pending=recs;const nc=recs.filter(r=>!AR.registry.find(x=>x.record_id===r.record_id)).length;setSb('J','ok',`${recs.length} notes · ${nc} new`);document.getElementById('ppJ').textContent=recs.slice(0,3).map(r=>`${r.date}  ${r.title.slice(0,48)}\n  type=${r.record_type}  actions=${r.action_items.length}`).join('\n');document.getElementById('pvJ').style.display='';document.getElementById('dzJ').classList.add('ok');document.getElementById('dzJI').textContent='✓';document.getElementById('dzJT').textContent=file.name;document.getElementById('imBtn').disabled=false;document.getElementById('imCnt').textContent=`${nc} new`;log(`JSON: ${recs.length} notes`,'ok');}catch(err){setSb('J','err','Error: '+err.message);}};r.readAsText(file);}
+
+function prcSN(file){const r=new FileReader();r.onload=e=>{try{const data=JSON.parse(e.target.result);if(!data.items||!Array.isArray(data.items)){setSb('SN','err','Not a valid Standard Notes backup');return;}const recs=pSN(data);pending=recs;const nc=recs.filter(r=>!AR.registry.find(x=>x.record_id===r.record_id)).length;const tags=new Set();recs.forEach(r=>(r.tags||[]).forEach(t=>tags.add(t)));setSb('SN','ok',`${recs.length} notes · ${nc} new · ${tags.size} tags`);document.getElementById('ppSN').textContent=recs.slice(0,3).map(r=>`${r.date}  ${r.title.slice(0,48)}\n  type=${r.record_type}  updated=${r.updated_at?.slice(0,10)||'—'}  actions=${r.action_items.length}`).join('\n');document.getElementById('pvSN').style.display='';document.getElementById('dzSN').classList.add('ok');document.getElementById('dzSNI').textContent='✓';document.getElementById('dzSNT').textContent=file.name;document.getElementById('imBtn').disabled=false;document.getElementById('imCnt').textContent=`${nc} new`;log(`SN: ${recs.length} notes`,'ok');}catch(err){setSb('SN','err','Error: '+err.message);}};r.readAsText(file);}
+
+function prcConCSV(file){const r=new FileReader();r.onload=e=>{try{const cons=pConCSV(e.target.result);if(!cons.length){setSb('CC','err','No contacts found');return;}pending=cons;// flag as contact import
+pending._isContacts=true;setSb('CC','ok',`${cons.length} contacts parsed`);document.getElementById('ppCC').textContent=cons.slice(0,5).map(c=>`${c.name} · ${c.role||'—'} · ${c.org||'—'}`).join('\n');document.getElementById('pvCC').style.display='';document.getElementById('dzCC').classList.add('ok');document.getElementById('dzCCI').textContent='✓';document.getElementById('dzCCT').textContent=file.name;document.getElementById('imBtn').disabled=false;document.getElementById('imCnt').textContent=`${cons.length} contacts`;log(`Con CSV: ${cons.length} contacts`,'ok');}catch(err){setSb('CC','err','Error: '+err.message);}};r.readAsText(file);}
+
+function prcTagsCSV(file){const r=new FileReader();r.onload=e=>{try{const tags=pTagsCSV(e.target.result);if(!tags.length){setSb('TC','err','No tags found');return;}pending=tags;pending._isTags=true;setSb('TC','ok',`${tags.length} tags parsed`);document.getElementById('ppTC').textContent=tags.slice(0,10).join(', ')+(tags.length>10?'…':'');document.getElementById('pvTC').style.display='';document.getElementById('dzTC').classList.add('ok');document.getElementById('dzTCI').textContent='✓';document.getElementById('dzTCT').textContent=file.name;document.getElementById('imBtn').disabled=false;document.getElementById('imCnt').textContent=`${tags.length} tags`;log(`Tags CSV: ${tags.length} tags`,'ok');}catch(err){setSb('TC','err','Error: '+err.message);}};r.readAsText(file);}
+
+// live parse for text tab
+document.addEventListener('DOMContentLoaded',()=>{
+  const area=document.getElementById('paTA');
+  if(area)area.addEventListener('input',()=>{
+    const txt=area.value.trim();
+    if(txt.length<6){document.getElementById('sbT').style.display='none';document.getElementById('pvT').style.display='none';if(curTab==='text'){pending=[];document.getElementById('imBtn').disabled=true;}return;}
+    try{const r=pFT(txt);pending=[r];setSb('T','ok',`"${r.title}" · ${r.date} · ${r.action_items.length} actions`);document.getElementById('ppT').textContent=`title: ${r.title}\ndate:  ${r.date}\ntype:  ${r.record_type}\ntags:  ${(r.tags||[]).join(', ')||'—'}\nactions: ${r.action_items.length} (${r.action_items.filter(a=>a.sovereign_action).length} sov)`;document.getElementById('pvT').style.display='';document.getElementById('imBtn').disabled=false;document.getElementById('imCnt').textContent='1 record';}catch(err){setSb('T','err','Error: '+err.message);pending=[];document.getElementById('imBtn').disabled=true;}
+  });
+});
+
+function setSb(x,cls,msg){const el=document.getElementById(`sb${x}`);if(!el)return;el.textContent=msg;el.className=`sb ${cls}`;el.style.display='';}
+
+function runIngest(){
+  if(!pending.length)return;
+  if(pending._isContacts){
+    const{added,updated}=mergeContacts(pending);
+    cIM();rndConM();rndConPrev();updStats();
+    log(`Contacts: ${added} added, ${updated} updated`,'ok');pending=[];return;
+  }
+  if(pending._isTags){
+    reconcileTags(pending);
+    // Apply bulk tags to archive: add each new tag to a tag-holding set (available in Tags workspace)
+    // Tags themselves aren't assigned to records here — they're staged for the workspace
+    cIM();renderTagsLeft();
+    document.getElementById('clearNewBtn').style.display=(AR.newTags||new Set()).size>0?'':'none';
+    log(`Tags: ${pending.length} staged (see Tags tab)`,'ok');pending=[];return;
+  }
+  const{added,dupes}=addRecs(pending);
+  const seed=seedCons(pending);
+  // Reconcile new tags from import
+  const allNewTags=new Set();pending.forEach(r=>(r.tags||[]).forEach(t=>allNewTags.add(t)));
+  reconcileTags([...allNewTags]);
+  cIM();renderList();updStats();renderSum();rndConPrev();
+  if(pending.length){const last=pending[pending.length-1];if(AR.registry.find(r=>r.record_id===last.record_id))selRec(last.record_id);}
+  pending=[];
+  log(`Added ${added}, ${dupes} dupes${seed?`, ${seed} contacts`:''}`, 'ok');
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────
+function toggleExpMenu(){const m=document.getElementById('expMenu');m.classList.toggle('show');}
+function closeExpMenu(){document.getElementById('expMenu').classList.remove('show');}
+document.addEventListener('click',e=>{if(!e.target.closest('.exp-wrap'))closeExpMenu();});
+
+function exportAR(){if(!AR.registry.length)return;const out={manifest:{...AR.manifest,record_count:AR.registry.length,exported_at:new Date().toISOString()},contacts:AR.contacts||[],registry:AR.registry};dlJSON(out,`NotesArchive_${ts()}_parsed.json`);log(`Exported ${AR.registry.length} records + ${(AR.contacts||[]).length} contacts`,'ok');}
+
+function exportContacts(){const cs=AR.contacts||[];if(!cs.length){log('No contacts to export','warn');return;}dlJSON(cs,`NotesContacts_${ts()}.json`);log(`Exported ${cs.length} contacts`,'ok');}
+
+function exportTags(){
+  const counts={};for(const r of AR.registry)(r.tags||[]).forEach(t=>{counts[t]=(counts[t]||0)+1;});
+  const out=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([tag,count])=>({tag,count,records:AR.registry.filter(r=>(r.tags||[]).includes(tag)).map(r=>({record_id:r.record_id,title:r.title,date:r.date}))}));
+  if(!out.length){log('No tags to export','warn');return;}
+  dlJSON(out,`NotesTags_${ts()}.json`);log(`Exported ${out.length} tags`,'ok');
+}
+
+function dlJSON(data,filename){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);}
+function ts(){return new Date().toISOString().slice(0,10);}
+
+function onLoad(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{const data=JSON.parse(e.target.result);if(!data.registry){log('Invalid archive','err');return;}AR=data;if(!AR.contacts)AR.contacts=[];if(!AR.newTags)AR.newTags=new Set();else AR.newTags=new Set(AR.newTags);selId=null;crmDirty=true;renderList();updStats();renderSum();renderDet();rndConPrev();log(`Loaded: ${AR.registry.length} records, ${AR.contacts.length} contacts`,'ok');}catch(err){log('Load failed: '+err.message,'err');}};r.readAsText(f);input.value='';}
+
+function clrAll(){if(!AR.registry.length&&!(AR.contacts||[]).length)return;if(!confirm(`Clear all ${AR.registry.length} records and ${(AR.contacts||[]).length} contacts?`))return;AR={manifest:{},contacts:[],registry:[],newTags:new Set()};selId=null;crmDirty=true;renderList();renderDet();updStats();renderSum();rndConPrev();log('Cleared','warn');}
+
+// ── CASE BUTTONS ─────────────────────────────────────────────────────
+function applyCase(mode){
+  const r=AR.registry.find(r=>r.record_id===selId);if(!r)return;
+  let t=r.title||'';
+  if(mode==='title'){const PRESERVE=new Set(['PACS','JJMD','AI','MRI','CT','PET','EMR','EHR','IT','NIH','R21','R01','UMMC','UMB','CRM','API','SBIR','STTR','RSNA','SIIM','AAPM','PKD','IHC','ACR','RIS','Q1','Q2','Q3','Q4','UI','SSF']);t=t.replace(/[\w\u00C0-\u024F]+/g,w=>PRESERVE.has(w.toUpperCase())?w.toUpperCase():w.charAt(0).toUpperCase()+w.slice(1).toLowerCase());}
+  else if(mode==='upper')t=t.toUpperCase();
+  r.title=t;document.getElementById('dTit').value=t;
+  const el=document.querySelector(`.ri[data-id="${selId}"] .ri-t`);if(el)el.textContent=t;
+}
+
+// ── GLOBAL DROP ────────────────────────────────────────────────────────
+let dn=0;
+document.addEventListener('dragenter',e=>{if(e.dataTransfer.types.includes('Files')){dn++;document.getElementById('dgl').classList.add('show');}});
+document.addEventListener('dragleave',()=>{dn=Math.max(0,dn-1);if(!dn)document.getElementById('dgl').classList.remove('show');});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{e.preventDefault();dn=0;document.getElementById('dgl').classList.remove('show');const f=e.dataTransfer.files[0];if(!f)return;if(f.name.endsWith('.csv')){oIM('csv');prcCSV(f);}else if(f.name.endsWith('.json')){oIM('json');prcJSON(f);}else if(f.name.endsWith('.txt')){oIM('sn');prcSN(f);}else log(`Unsupported: ${f.name}`,'warn');});
+
+// ── KEYBOARD NAV ──────────────────────────────────────────────────────
+document.addEventListener('keydown',function(e){
+  const tag=(e.target.tagName||'').toUpperCase();
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||e.target.isContentEditable)return;
+  if(document.querySelector('.ov.show'))return;
+  if(curView!=='notes')return;
+  const nav=(e.key==='ArrowDown'||e.key==='j')?1:(e.key==='ArrowUp'||e.key==='k')?-1:0;
+  if(!nav)return;e.preventDefault();
+  const q=(document.getElementById('srch').value||'').toLowerCase().trim();
+  let recs=[...AR.registry].sort(sortFns[curSort]||sortFns['date-d']);
+  if(q)recs=recs.filter(r=>r.title.toLowerCase().includes(q)||(r.tags||[]).some(t=>t.includes(q)));
+  if(!recs.length)return;
+  const idx=selId?recs.findIndex(r=>r.record_id===selId):-1;
+  const next=Math.max(0,Math.min(recs.length-1,idx+nav));
+  if(recs[next]&&recs[next].record_id!==selId){selRec(recs[next].record_id);const el=document.querySelector('.ri.act');if(el)el.scrollIntoView({block:'nearest',behavior:'smooth'});}
+});
+
+// ── STATS + SUMMARY ───────────────────────────────────────────────────
+function updStats(){
+  const recs=AR.registry;
+  document.getElementById('sT').textContent=recs.length;
+  document.getElementById('sA').textContent=recs.reduce((n,r)=>n+(r.action_items||[]).length,0);
+  document.getElementById('sS').textContent=recs.filter(r=>(r.action_items||[]).some(a=>a.sovereign_action)).length;
+  document.getElementById('sC').textContent=(AR.contacts||[]).length;
+  document.getElementById('rCnt').textContent=recs.length;
+  document.getElementById('expBtn').disabled=recs.length===0;
+}
+
+function renderSum(){
+  const recs=AR.registry,tot=recs.length;
+  const mtgs=recs.filter(r=>r.record_type==='meeting').length;
+  const hi=recs.filter(r=>r.parse_quality.confidence==='HIGH').length;
+  const me=recs.filter(r=>r.parse_quality.confidence==='MEDIUM').length;
+  const lo=recs.filter(r=>r.parse_quality.confidence==='LOW').length;
+  const acts=recs.reduce((n,r)=>n+(r.action_items||[]).length,0);
+  const sov=recs.reduce((n,r)=>n+(r.action_items||[]).filter(a=>a.sovereign_action).length,0);
+  const tagged=recs.filter(r=>(r.tags||[]).length>0).length;
+  document.getElementById('smT').textContent=tot;document.getElementById('smM').textContent=mtgs;
+  document.getElementById('smN').textContent=tot-mtgs;document.getElementById('smA').textContent=acts;
+  document.getElementById('smS').textContent=sov;document.getElementById('smTg').textContent=tagged;
+  document.getElementById('smH').textContent=hi;document.getElementById('smMe').textContent=me;
+  document.getElementById('smL').textContent=lo;
+  if(tot){document.getElementById('qH').style.width=(hi/tot*100)+'%';document.getElementById('qM').style.width=(me/tot*100)+'%';document.getElementById('qL').style.width=(lo/tot*100)+'%';}
+  const types={};for(const r of recs)types[r.record_type||'meeting']=(types[r.record_type||'meeting']||0)+1;
+  document.getElementById('tyBk').innerHTML=Object.entries(types).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<div class="tr"><div class="td" style="background:${TCOL[t]||'#475569'}"></div><div class="tl">${t}</div><div class="tc">${c}</div></div>`).join('');
+  const recent=[...recs].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);
+  document.getElementById('recRecent').innerHTML=recent.map(r=>`<div class="ri2" onclick="selRec('${r.record_id}')"><div class="ri2t">${esc(r.title)}</div><div class="ri2m"><span>${r.date||'—'}</span><span>${r.record_type}</span><span>${r.action_items.length} actions</span></div></div>`).join('')||'<div style="font-size:10px;color:var(--muted);padding:4px 0;">No records</div>';
+  rndConPrev();
+}
+
+// ── LOG ───────────────────────────────────────────────────────────────
+function log(msg,level='info'){
+  const inner=document.getElementById('logIn');
+  const cls={ok:'lok',warn:'lwarn',err:'lerr',info:'linfo'}[level]||'linfo';
+  const el=document.createElement('span');el.className=cls;
+  el.textContent=`[${new Date().toTimeString().slice(0,8)}] ${msg}`;
+  inner.appendChild(el);inner.scrollTop=inner.scrollHeight;
+  while(inner.children.length>300)inner.removeChild(inner.firstChild);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+updStats();renderSum();
+log('NOTESREP v1.4.0 — ready','info');
+
+</script>
+</body>
+</html>

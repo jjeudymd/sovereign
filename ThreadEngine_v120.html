@@ -1,0 +1,2435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>ThreadEngine v1.2.0</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#090e1a;--surface:#0f172a;--panel:#141e33;--card:#1a2642;
+  --border:#243050;--border2:#2e3f60;
+  --blue:#3b82f6;--blue2:#60a5fa;--blue-hi:#93c5fd;
+  --green:#22d3ee;--amber:#f59e0b;--red:#f87171;--purple:#a78bfa;
+  --muted:#64748b;--text:#cbd5e1;--text2:#94a3b8;--white:#f1f5f9;
+  --topbar-h:46px;
+}
+html,body{height:100%;background:var(--navy);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;}
+#topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;z-index:100;}
+#workspace{position:fixed;top:var(--topbar-h);left:0;right:0;bottom:0;display:flex;overflow:hidden;}
+.topbar-logo{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--white);letter-spacing:.06em;padding:0 18px;border-right:1px solid var(--border);height:100%;display:flex;align-items:center;gap:8px;white-space:nowrap;flex-shrink:0;}
+.topbar-logo span{color:var(--blue2);}
+.topbar-ver{font-size:9px;background:var(--border);color:var(--blue2);padding:2px 7px;border-radius:3px;letter-spacing:.08em;}
+.topbar-search{flex:1;min-width:0;padding:0 16px;border-right:1px solid var(--border);height:100%;display:flex;align-items:center;}
+.topbar-search input{width:100%;background:transparent;border:none;outline:none;color:var(--white);font-family:'IBM Plex Mono',monospace;font-size:12px;}
+.topbar-search input::placeholder{color:var(--muted);}
+.search-clear{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 6px;line-height:1;flex-shrink:0;}
+.search-clear:hover{color:var(--text);}
+
+.topbar-stats{display:flex;align-items:center;height:100%;border-right:1px solid var(--border);flex-shrink:0;}
+.tstat{padding:0 11px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);border-right:1px solid var(--border);height:100%;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+.tstat:last-child{border-right:none;}
+.tstat-val{font-weight:600;}
+.tstat-val.ok{color:var(--green);}
+.tstat-val.warn{color:var(--amber);}
+.topbar-actions{display:flex;align-items:center;height:100%;flex-shrink:0;}
+.tbtn{height:100%;padding:0 13px;border:none;background:transparent;color:var(--text2);font-size:11px;font-family:'IBM Plex Mono',monospace;letter-spacing:.05em;cursor:pointer;border-left:1px solid var(--border);transition:background .15s,color .15s;white-space:nowrap;}
+.tbtn:hover{background:var(--panel);color:var(--blue2);}
+.tbtn.accent{color:var(--blue2);}
+.tbtn.danger{color:var(--red);}
+.tbtn.success{color:var(--green);}
+.tbtn input{display:none;}
+#threadPane{width:300px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;}
+.pane-hdr{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.pane-title{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.pane-count{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--blue2);background:var(--card);padding:2px 7px;border-radius:3px;}
+.filter-strip{padding:6px 8px;border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;}
+.fpill{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:3px;border:1px solid var(--border);color:var(--text2);background:transparent;cursor:pointer;transition:all .12s;letter-spacing:.04em;}
+.fpill:hover{border-color:var(--border2);color:var(--text);}
+.fpill.on{border-color:var(--blue);color:var(--blue2);background:#1e3a5f44;}
+#threadList{flex:1;overflow-y:auto;min-height:0;}
+.ti{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+.ti:hover{background:var(--panel);}
+.ti.active{background:var(--card);border-left:2px solid var(--blue);padding-left:10px;}
+.ti.active .ti-subj{color:var(--blue-hi);}
+.ti-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;gap:6px;}
+.ti-from{font-size:12px;font-weight:500;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.ti-date{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);flex-shrink:0;}
+.ti-subj{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.ti-prev{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ti-badges{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap;}
+.bx{font-size:9px;padding:1px 5px;border-radius:2px;font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;border:1px solid;white-space:nowrap;}
+.b-flag{color:#fbbf24;border-color:#78350f;background:#1c1008;}
+.b-mtg{color:#34d399;border-color:#065f46;background:#021a11;}
+.b-ext{color:#a78bfa;border-color:#4c1d95;background:#0d0720;}
+.b-att{color:#60a5fa;border-color:#1e3a8a;background:#040c1e;}
+.b-msg{color:var(--muted);border-color:var(--border);background:var(--panel);}
+.b-warn{color:#fb923c;border-color:#7c2d12;background:#1a0a04;}
+.b-reg-sent{color:#a78bfa;border-color:#4c1d95;background:#0d0720;}
+.b-reg-ok{color:#34d399;border-color:#065f46;background:#021a11;}
+.b-reg-rm{color:var(--muted);border-color:var(--border);background:var(--panel);text-decoration:line-through;}
+.b-thin{color:var(--muted);border-color:var(--border);background:var(--panel);font-style:italic;}
+.b-tag{color:var(--green);border-color:#0f6e56;background:#04342c;}
+.b-cat{color:var(--amber);border-color:#78350f;background:#1c1008;}
+#detailPane{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:var(--navy);}
+.thread-hdr{padding:12px 20px 10px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.th-subj{font-size:15px;font-weight:600;color:var(--white);margin-bottom:5px;line-height:1.3;}
+.th-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+.th-meta-text{font-size:11px;color:var(--muted);}
+.th-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;}
+.msg-stack{flex:1;overflow-y:auto;padding:14px 20px 40px;display:flex;flex-direction:column;gap:10px;min-height:0;}
+.msg-stack>.msg-card{flex-shrink:0;}
+.tag-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:5px 0 2px;}
+.tag-chip{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-family:'IBM Plex Mono',monospace;padding:2px 7px 2px 8px;border-radius:3px;border:1px solid #0f6e56;color:var(--green);background:#04342c;}
+.tag-chip button{background:none;border:none;color:var(--green);cursor:pointer;font-size:11px;padding:0;line-height:1;opacity:.7;}
+.tag-chip button:hover{opacity:1;}
+.cat-chip{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-family:'IBM Plex Mono',monospace;padding:2px 7px 2px 8px;border-radius:3px;border:1px solid #78350f;color:var(--amber);background:#1c1008;}
+.cat-chip button{background:none;border:none;color:var(--amber);cursor:pointer;font-size:11px;padding:0;line-height:1;opacity:.7;}
+.cat-chip button:hover{opacity:1;}
+.tag-input-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;padding:4px 0 2px;}
+.tag-input{background:var(--card);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 8px;outline:none;width:140px;}
+.tag-input:focus{border-color:var(--blue);}
+.tag-input::placeholder{color:var(--muted);}
+.tag-add-btn{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 9px;border-radius:3px;border:1px solid var(--border);color:var(--text2);background:transparent;cursor:pointer;}
+.tag-add-btn:hover{border-color:var(--blue2);color:var(--blue2);}
+.tag-add-btn.cat{border-color:#78350f;color:var(--amber);}
+.tag-add-btn.cat:hover{border-color:var(--amber);}
+.msg-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;overflow:visible;transition:border-color .15s;}
+.msg-card.collapsed .msg-body,.msg-card.collapsed .msg-body-quote,
+.msg-card.collapsed .msg-body-empty,.msg-card.collapsed .body-toggle-bar,
+.msg-card.collapsed .links-bar,.msg-card.collapsed .att-bar,
+.msg-card.collapsed .mtg-block,.msg-card.collapsed .eml-view,
+.msg-card.collapsed .quote-btn{display:none;}
+.msg-collapse-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 4px;line-height:1;flex-shrink:0;font-family:'IBM Plex Mono',monospace;}
+.msg-collapse-btn:hover{color:var(--text2);}
+.msg-card:hover{border-color:var(--border2);}
+.msg-card.flagged{border-left:3px solid var(--amber);}
+.msg-card.low-q{border-left:3px solid var(--red);opacity:.9;}
+.msg-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;}
+.msg-avatar{width:30px;height:30px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;background:var(--card);color:var(--blue2);}
+.msg-meta{flex:1;min-width:0;}
+.msg-from-row{display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap;}
+.msg-from{font-size:13px;font-weight:500;color:var(--white);}
+.msg-email{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted);}
+.msg-time{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted);margin-left:auto;flex-shrink:0;}
+.msg-rcpt{font-size:11px;color:var(--text2);margin-bottom:2px;}
+.msg-rcpt span{color:var(--text);}
+.msg-badges{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;}
+.msg-body{padding:12px 14px;font-size:13px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;}
+.msg-body-empty{padding:12px 14px;font-style:italic;color:var(--muted);font-size:12px;}
+.msg-body-quote{display:none;padding:8px 14px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;opacity:.7;}
+.msg-body-quote.open{display:block;}
+.body-toggle-bar{display:flex;gap:4px;padding:5px 14px;border-bottom:1px solid var(--border);background:var(--card);}
+.btog{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:2px 9px;border-radius:3px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;transition:all .12s;}
+.btog:hover{color:var(--text);border-color:var(--border2);}
+.btog.on{border-color:var(--blue);color:var(--blue2);background:#1e3a5f44;}
+.eml-view{padding:12px 14px;font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.6;color:var(--text2);white-space:pre-wrap;word-break:break-all;overflow-wrap:anywhere;background:var(--navy);}
+.mtg-block{margin:12px 14px;padding:10px 12px;border-radius:5px;background:#0a1f12;border:1px solid #065f46;}
+.mtg-label{font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em;color:#34d399;margin-bottom:6px;text-transform:uppercase;}
+.mtg-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#60a5fa;text-decoration:none;font-family:'IBM Plex Mono',monospace;}
+.mtg-link:hover{color:#93c5fd;}
+.quote-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted);background:transparent;border:1px solid var(--border);border-radius:3px;padding:3px 10px;cursor:pointer;margin:0 14px 10px;transition:all .12s;}
+.quote-btn:hover{color:var(--text);border-color:var(--border2);}
+.links-bar{padding:8px 14px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:5px;}
+.link-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 8px;border-radius:3px;border:1px solid var(--border);color:var(--text2);text-decoration:none;transition:all .12s;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.link-pill:hover{border-color:var(--blue);color:var(--blue2);}
+.link-type{font-size:9px;opacity:.6;flex-shrink:0;}
+.att-bar{padding:6px 14px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:5px;}
+.att-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 8px;border-radius:3px;border:1px solid var(--border2);color:var(--blue2);background:#040c1e;}
+.ai-btn{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:4px 12px;border-radius:4px;border:1px solid var(--purple);color:var(--purple);background:transparent;cursor:pointer;letter-spacing:.06em;transition:all .15s;}
+.ai-btn:hover{background:#0d0720;color:#c4b5fd;}
+.drop-overlay{display:none;position:fixed;inset:0;background:#090e1aee;z-index:200;align-items:center;justify-content:center;flex-direction:column;}
+.drop-overlay.show{display:flex;}
+.drop-box{border:2px dashed var(--blue);border-radius:10px;padding:36px 56px;text-align:center;color:var(--blue2);font-family:'IBM Plex Mono',monospace;}
+.drop-box .icon{font-size:32px;margin-bottom:8px;}
+.drop-box p{font-size:13px;letter-spacing:.06em;}
+.drop-box small{font-size:11px;color:var(--muted);}
+.log-drawer{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:11px;transition:height .2s;z-index:150;overflow:hidden;}
+.log-drawer.open{height:160px;}
+.log-drawer.closed{height:0;}
+.log-inner{height:100%;overflow-y:auto;padding:.5rem .75rem;display:flex;flex-direction:column;gap:1px;}
+.log-ok{color:var(--green);}
+.log-warn{color:var(--amber);}
+.log-err{color:var(--red);}
+.log-info{color:#60a5fa;}
+.debug-drawer{position:fixed;right:0;top:var(--topbar-h);bottom:0;width:500px;background:var(--surface);border-left:1px solid var(--border);z-index:120;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .2s;}
+.debug-drawer.open{transform:none;}
+.debug-hdr{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.debug-tabs{display:flex;gap:4px;}
+.dtab{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 10px;border-radius:3px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;letter-spacing:.06em;}
+.dtab.on{border-color:var(--blue);color:var(--blue2);background:#1e3a5f44;}
+.debug-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px;}
+.debug-pre{flex:1;overflow:auto;padding:1rem;background:#070d1a;color:#60a5fa;font-size:10px;font-family:'IBM Plex Mono',monospace;white-space:pre;}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);gap:8px;padding:2rem;text-align:center;}
+.empty-icon{font-size:32px;opacity:.3;}
+.empty-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;line-height:1.6;}
+.detail-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);}
+.detail-empty .icon{font-size:44px;opacity:.15;}
+.detail-empty p{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;}
+.sort-btn{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:2px 7px;border-radius:3px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;}
+.sort-btn:hover{color:var(--text);border-color:var(--border2);}
+.topbar-menu-btn{display:none;height:100%;padding:0 14px;border:none;background:transparent;color:var(--text2);font-size:20px;line-height:1;cursor:pointer;border-left:1px solid var(--border);}
+.topbar-dropdown{display:none;position:fixed;top:var(--topbar-h);right:0;background:var(--surface);border:1px solid var(--border);border-top:none;z-index:200;flex-direction:column;min-width:220px;box-shadow:0 8px 24px #00000077;}
+.topbar-dropdown.open{display:flex;}
+.tdrop-item{padding:11px 16px;font-size:12px;font-family:'IBM Plex Mono',monospace;color:var(--text2);cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:transparent;border-left:none;border-right:none;border-top:none;width:100%;text-align:left;letter-spacing:.04em;}
+.tdrop-item:last-child{border-bottom:none;}
+.tdrop-item:hover{background:var(--panel);color:var(--white);}
+.tdrop-item.accent{color:var(--blue2);}
+.tdrop-item.success{color:var(--green);}
+.tdrop-item.danger{color:var(--red);}
+.tdrop-item input{display:none;}
+@media(max-width:900px){
+  .topbar-stats,.topbar-actions{display:none;}
+  .topbar-menu-btn{display:flex;align-items:center;justify-content:center;}
+  .topbar-search{border-right:none;}
+  #workspace{flex-direction:column;}
+  #threadPane{width:100%;height:220px;min-height:220px;flex-shrink:0;border-right:none;border-bottom:1px solid var(--border);}
+  #detailPane{flex:1;min-height:0;}
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
+.ti{animation:fadeUp .18s ease both;}
+.msg-card{animation:fadeUp .16s ease both;}
+::-webkit-scrollbar{width:4px;height:4px;}
+/* ── Multi-select ── */
+.ti-check{width:16px;height:16px;border-radius:3px;border:1px solid var(--border);background:transparent;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;margin-right:6px;color:var(--blue2);}
+.ti.selected .ti-check{background:var(--blue);border-color:var(--blue);color:#fff;}
+.ti.selected{background:#1e3a5f22;}
+.select-bar{display:none;padding:6px 10px;border-bottom:1px solid var(--border);background:var(--card);align-items:center;justify-content:space-between;flex-shrink:0;}
+.select-bar.visible{display:flex;}
+.select-bar-left{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--blue2);}
+.select-bar-btns{display:flex;gap:4px;}
+.sel-btn{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 9px;border-radius:3px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text2);}
+.sel-btn:hover{border-color:var(--blue2);color:var(--blue2);}
+.sel-btn.primary{border-color:var(--blue);color:var(--blue2);background:#1e3a5f44;}
+.sel-btn.success{border-color:var(--green);color:var(--green);}
+.sel-btn.cancel{border-color:var(--red);color:var(--red);}
+/* ── Thread notes ── */
+.thread-note-section{background:var(--card);border-bottom:1px solid var(--border);padding:8px 20px;}
+.thread-note-label{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;}
+.thread-note-ta{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:12px;line-height:1.5;padding:7px 10px;resize:vertical;min-height:60px;outline:none;}
+.thread-note-ta:focus{border-color:var(--blue);}
+.thread-note-ta::placeholder{color:var(--muted);}
+.note-hint{font-size:10px;color:var(--muted);margin-top:3px;font-family:'IBM Plex Mono',monospace;}
+/* ── AI Bridge modal ── */
+.bridge-overlay{display:none;position:fixed;inset:0;background:#090e1acc;z-index:300;align-items:center;justify-content:center;}
+.bridge-overlay.show{display:flex;}
+.bridge-modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;width:min(760px,92vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+.bridge-hdr{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.bridge-title{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--white);letter-spacing:.05em;}
+.bridge-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;}
+.bridge-body{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px;}
+.bridge-section-label{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;}
+.bridge-config{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.bridge-select{background:var(--card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 10px;outline:none;cursor:pointer;}
+.bridge-select:focus{border-color:var(--blue);}
+.bridge-thread-list{display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;}
+.bridge-thread-row{display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0;}
+.bridge-thread-row input[type=checkbox]{accent-color:var(--blue);}
+.bridge-thread-subj{flex:1;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bridge-thread-meta{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);flex-shrink:0;}
+.bridge-run-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;padding:8px 22px;border-radius:5px;border:none;background:var(--blue);color:#fff;cursor:pointer;letter-spacing:.05em;transition:background .15s;flex-shrink:0;}
+.bridge-run-btn:hover{background:#2563eb;}
+.bridge-run-btn:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;}
+.bridge-status{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--blue2);padding:6px 10px;background:var(--card);border-radius:4px;border:1px solid var(--border);}
+.bridge-status.ok{color:var(--green);border-color:#065f46;}
+.bridge-status.err{color:var(--red);border-color:#7f1d1d;}
+.bridge-output{background:#070d1a;border:1px solid var(--border);border-radius:5px;padding:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#60a5fa;white-space:pre-wrap;overflow-y:auto;max-height:280px;min-height:60px;}
+.bridge-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
+.bridge-footer-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 16px;border-radius:4px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:all .15s;}
+.bridge-footer-btn:hover{border-color:var(--blue2);color:var(--blue2);}
+.bridge-footer-btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;}
+.bridge-footer-btn.primary:hover{background:#2563eb;}
+.bridge-footer-btn.success{border-color:var(--green);color:var(--green);}
+.bridge-footer-btn:disabled{opacity:.4;cursor:not-allowed;}
+.stream-cursor{display:inline-block;width:7px;height:13px;background:var(--blue2);animation:blink .7s step-end infinite;vertical-align:text-bottom;}
+@keyframes blink{50%{opacity:0;}}
+
+/* ── Settings Panel ── */
+.settings-overlay{display:none;position:fixed;inset:0;background:#090e1acc;z-index:400;align-items:center;justify-content:center;}
+.settings-overlay.show{display:flex;}
+.settings-modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;width:min(560px,90vw);max-height:80vh;display:flex;flex-direction:column;overflow:hidden;}
+.settings-hdr{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.settings-title{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--white);letter-spacing:.05em;}
+.settings-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;}
+.settings-body{flex:1;overflow-y:auto;padding:18px;}
+.settings-section{margin-bottom:22px;}
+.settings-section-label{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;}
+.settings-desc{font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:10px;}
+.domain-list{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
+.domain-row{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);background:var(--card);border:1px solid var(--border);border-radius:3px;padding:5px 10px;}
+.domain-row span{flex:1;}
+.domain-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:0 2px;line-height:1;flex-shrink:0;}
+.domain-remove:hover{color:var(--red);}
+.domain-add-row{display:flex;gap:6px;}
+.domain-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 10px;outline:none;}
+.domain-input:focus{border-color:var(--blue);}
+.domain-input::placeholder{color:var(--muted);}
+.domain-add-btn{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:5px 12px;border-radius:3px;border:1px solid var(--blue);color:var(--blue2);background:transparent;cursor:pointer;}
+.domain-add-btn:hover{background:#1e3a5f44;}
+.settings-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;}
+.settings-save-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 18px;border-radius:4px;border:none;background:var(--blue);color:#fff;cursor:pointer;}
+.settings-save-btn:hover{background:#2563eb;}
+
+/* ── Bridge validation checklist ── */
+.bridge-validation{background:var(--card);border:1px solid var(--border);border-radius:5px;padding:10px 12px;font-family:'IBM Plex Mono',monospace;font-size:10px;}
+.val-row{display:flex;align-items:center;gap:7px;padding:2px 0;}
+.val-ok{color:var(--green);}
+.val-warn{color:var(--amber);}
+.val-err{color:var(--red);}
+
+/* ── Bridge output editable ── */
+.bridge-output-edit{background:#070d1a;border:1px solid var(--border);border-radius:5px;padding:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#60a5fa;white-space:pre-wrap;overflow-y:auto;max-height:280px;min-height:60px;outline:none;resize:vertical;}
+.bridge-output-edit:focus{border-color:var(--blue2);}
+
+/* ── Related badge ── */
+.b-related{color:#a78bfa;border-color:#4c1d95;background:#0d0720;cursor:pointer;}
+.b-related:hover{background:#180a3a;}
+
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- Fixed overlays -->
+<div id="dropOverlay" class="drop-overlay">
+  <div class="drop-box">
+    <div class="icon">&#128232;</div>
+    <p>DROP EML OR JSON FILES</p>
+    <small>multi-file &#183; archives merge automatically</small>
+  </div>
+</div>
+<div id="logDrawer" class="log-drawer closed">
+  <div class="log-inner" id="logInner"></div>
+</div>
+<div id="debugDrawer" class="debug-drawer">
+  <div class="debug-hdr">
+    <div class="debug-tabs">
+      <button class="dtab on" onclick="setDebugTab('registry')">Registry</button>
+      <button class="dtab" onclick="setDebugTab('manifest')">Manifest</button>
+      <button class="dtab" onclick="setDebugTab('errors')">Errors</button>
+    </div>
+    <button class="debug-close" onclick="closeDebug()">&#10005;</button>
+  </div>
+  <pre id="debugPre" class="debug-pre">// no data yet</pre>
+</div>
+<div id="topDropdown" class="topbar-dropdown">
+  <button class="tdrop-item accent" onclick="document.getElementById('jsonIn2').click()">+ Load JSON archive<input type="file" id="jsonIn2" accept=".json" multiple onchange="handleJson2(this)"/></button>
+  <button class="tdrop-item accent" onclick="document.getElementById('emlIn2').click()">+ Load EML files<input type="file" id="emlIn2" accept=".eml" multiple onchange="handleEml2(this)"/></button>
+  <button class="tdrop-item" onclick="toggleLog();closeTopMenu()">Parser log</button>
+  <button class="tdrop-item" onclick="toggleDebug();closeTopMenu()">Debug viewer</button>
+  <button class="tdrop-item success" onclick="exportArchive();closeTopMenu()">&#8595; Export archive JSON</button>
+  <button class="tdrop-item" onclick="exportAIPayload();closeTopMenu()" style="color:var(--text2);">&#8595; Bulk export (offline)</button>
+  <button class="tdrop-item" onclick="openSettings();closeTopMenu()">&#9881; Settings</button>
+  <button class="tdrop-item danger" onclick="clearAll();closeTopMenu()">&#10005; Clear archive</button>
+</div>
+
+
+<!-- Settings Modal -->
+<div id="settingsOverlay" class="settings-overlay">
+  <div class="settings-modal">
+    <div class="settings-hdr">
+      <span class="settings-title">&#9881; SETTINGS</span>
+      <button class="settings-close" onclick="closeSettings()">&#10005;</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-section">
+        <div class="settings-section-label">Internal Domains</div>
+        <div class="settings-desc">
+          Email addresses from these domains are classified as <strong style="color:var(--green);">internal</strong>. All others are marked external (↗ EXT badge). Affects participant roles in Registry capture JSON.
+        </div>
+        <div class="domain-list" id="domainList"></div>
+        <div class="domain-add-row">
+          <input class="domain-input" id="domainInput" type="text" placeholder="e.g. example.edu" autocomplete="off" spellcheck="false"/>
+          <button class="domain-add-btn" onclick="settingsAddDomain()">+ Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="settings-footer">
+      <button class="settings-save-btn" onclick="saveSettings()">&#10003; Save &amp; Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI Bridge Modal -->
+<div id="bridgeOverlay" class="bridge-overlay">
+  <div class="bridge-modal">
+    <div class="bridge-hdr">
+      <span class="bridge-title">&#10022; AI BRIDGE &mdash; REGISTRY CAPTURE</span>
+      <button class="bridge-close" onclick="closeBridge()">&#10005;</button>
+    </div>
+    <div class="bridge-body">
+      <!-- Config row -->
+      <div>
+        <div class="bridge-section-label">Model &amp; Options</div>
+        <div class="bridge-config">
+          <select id="bridgeModel" class="bridge-select" title="Claude model for this capture">
+            <option value="claude-sonnet-4-5">Sonnet 4.5 &mdash; standard (recommended)</option>
+            <option value="claude-opus-4-5">Opus 4.5 &mdash; complex clinical</option>
+            <option value="claude-haiku-4-5-20251001">Haiku 4.5 &mdash; fast draft</option>
+          </select>
+          <select id="bridgeCapture" class="bridge-select" title="Capture scope">
+            <option value="Complete">Complete capture</option>
+            <option value="Partial">Partial capture</option>
+          </select>
+          <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;">
+            <input type="checkbox" id="bridgeIncludeNotes" checked style="accent-color:var(--blue);"/> Include notes &amp; tags as context
+          </label>
+        </div>
+      </div>
+      <!-- Thread list -->
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+        <div class="bridge-section-label">Threads to capture (<span id="bridgeCount">0</span>)</div>
+        <div id="bridgePlan" class="bridge-status" style="display:none;font-size:10px;padding:2px 8px;"></div>
+      </div>
+        <div class="bridge-thread-list" id="bridgeThreadList"></div>
+      </div>
+      <!-- Status -->
+      <div id="bridgeStatusWrap" style="display:none;">
+        <div class="bridge-section-label">Status</div>
+        <div id="bridgeStatus" class="bridge-status">Initialising&hellip;</div>
+      </div>
+      <!-- Output preview -->
+      <div id="bridgeOutputWrap" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+          <div class="bridge-section-label" style="margin-bottom:0;">Registry JSON <span id="bridgeOutputMeta" style="color:var(--muted);font-size:9px;"></span></div>
+          <span style="font-size:9px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">editable — fix names, urgency, actions before saving</span>
+        </div>
+        <div id="bridgeOutput" class="bridge-output bridge-output-edit" contenteditable="false" spellcheck="false"></div>
+      </div>
+      <!-- Validation checklist -->
+      <div id="bridgeValidationWrap" style="display:none;">
+        <div class="bridge-section-label">Pre-download validation</div>
+        <div class="bridge-validation" id="bridgeValidation"></div>
+      </div>
+    </div>
+    <div class="bridge-footer">
+      <button class="bridge-footer-btn" id="bridgeCopyBtn" onclick="bridgeCopy()" disabled>&#10063; Copy JSON</button>
+      <button class="bridge-footer-btn success" id="bridgeDownloadBtn" onclick="bridgeDownload()" disabled>&#8595; Save capture JSON</button>
+      <button class="bridge-footer-btn" onclick="closeBridge()">Cancel</button>
+      <button class="bridge-run-btn" id="bridgeRunBtn" onclick="runBridge()">&#10022; RUN BRIDGE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Topbar: position:fixed, z-index:100 — independent of content -->
+<div id="topbar">
+  <div class="topbar-logo">THREAD<span>ENGINE</span><span class="topbar-ver" id="verBadge">v1.2.0</span></div>
+  <div class="topbar-search">
+    <input id="searchInput" type="text" placeholder="/ search &#8212; subject, sender, tag, category&#8230;" autocomplete="off"/>
+    <button class="search-clear" id="searchClear" title="Clear search" style="display:none;">&#10005;</button>
+  </div>
+  <div class="topbar-stats">
+    <div class="tstat" title="Messages"><span class="tstat-val ok" id="sMsgs">0</span>&nbsp;msgs</div>
+    <div class="tstat" title="Threads"><span class="tstat-val ok" id="sThreads">0</span>&nbsp;threads</div>
+    <div class="tstat" title="Meetings"><span class="tstat-val" id="sMtg">0</span>&nbsp;mtg</div>
+    <div class="tstat" title="External"><span class="tstat-val" id="sExt">0</span>&nbsp;ext</div>
+    <div class="tstat" title="Parse warnings"><span class="tstat-val warn" id="sWarn">0</span>&nbsp;warn</div>
+  </div>
+  <div class="topbar-actions">
+    <button class="tbtn accent" onclick="document.getElementById('jsonIn').click()">+ JSON<input type="file" id="jsonIn" accept=".json" multiple/></button>
+    <button class="tbtn accent" onclick="document.getElementById('emlIn').click()">+ EML<input type="file" id="emlIn" accept=".eml" multiple/></button>
+    <button class="tbtn" onclick="toggleLog()" id="logBtn">LOG</button>
+    <button class="tbtn" onclick="toggleDebug()">DEBUG</button>
+    <button class="tbtn success" onclick="exportArchive()" title="Export archive JSON">&#8595;&nbsp;ARCHIVE</button>
+    <button class="tbtn danger" onclick="clearAll()">&#10005;&nbsp;CLEAR</button>
+    <button class="tbtn" onclick="openSettings()" title="Settings" style="font-size:14px;">&#9881;</button>
+  </div>
+  <button class="topbar-menu-btn" onclick="toggleTopMenu()" id="menuBtn">&#9776;</button>
+</div>
+
+<!-- Workspace: position:fixed below topbar -->
+<div id="workspace">
+  <div id="threadPane">
+    <div class="pane-hdr">
+      <span class="pane-title">Threads</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button class="sort-btn" id="sortBtn" onclick="toggleSort()">&#8595; newest</button>
+        <button class="sort-btn" id="selectModeBtn" onclick="toggleSelectMode()" title="Multi-select threads">&#9635; select</button>
+        <span class="pane-count" id="threadCount">0</span>
+      </div>
+    </div>
+    <div class="select-bar" id="selectBar">
+      <span class="select-bar-left"><span id="selCount">0</span> selected</span>
+      <div class="select-bar-btns">
+        <button class="sel-btn success" onclick="exportSelected()">&#8595; AI JSON</button>
+        <button class="sel-btn primary" onclick="sendSelectedToRegistry()">&#10022; Send to Registry</button>
+        <button class="sel-btn" onclick="selectAll()">all</button>
+        <button class="sel-btn" onclick="selectNone()">none</button>
+        <button class="sel-btn cancel" onclick="toggleSelectMode()">&#10005;</button>
+      </div>
+    </div>
+    <div class="filter-strip">
+      <button class="fpill on" data-f="all" onclick="setFilter('all',this)">All</button>
+      <button class="fpill" data-f="flagged" onclick="setFilter('flagged',this)">&#9873; Flagged</button>
+      <button class="fpill" data-f="external" onclick="setFilter('external',this)">&#8599; Ext</button>
+      <button class="fpill" data-f="meeting" onclick="setFilter('meeting',this)">&#8857; Mtg</button>
+      <button class="fpill" data-f="attach" onclick="setFilter('attach',this)">&#8856; Files</button>
+      <button class="fpill" data-f="warn" onclick="setFilter('warn',this)">&#9888; Warn</button>
+    </div>
+    <div id="threadList">
+      <div class="empty">
+        <div class="empty-icon">&#128269;</div>
+        <div class="empty-label">Drop EML or JSON files<br/>to get started</div>
+      </div>
+    </div>
+  </div>
+  <div id="detailPane">
+    <div class="detail-empty">
+      <div class="icon">&#10022;</div>
+      <p>SELECT A THREAD</p>
+    </div>
+  </div>
+</div>
+
+<datalist id="tagSuggestions"></datalist>
+
+<script>
+var JsMime=(()=>{var J=Object.defineProperty;var ge=Object.getOwnPropertyDescriptor;var _e=Object.getOwnPropertyNames;var me=Object.prototype.hasOwnProperty;var ye=(e,t)=>{for(var r in t)J(e,r,{get:t[r],enumerable:!0})},De=(e,t,r,s)=>{if(t&&typeof t=="object"||typeof t=="function")for(let n of _e(t))!me.call(e,n)&&n!==r&&J(e,n,{get:()=>t[n],enumerable:!(s=ge(t,n))||s.enumerable});return e};var Ee=e=>De(J({},"__esModule",{value:!0}),e);var Fe={};ye(Fe,{parseMail:()=>X});function N(e){return[e.replace(/=([0-9A-F][0-9A-F]|[ \t]*(\r\n|[\r\n]|$))/gi,function(r,s){return s.trim().length==0?"":String.fromCharCode(parseInt(s,16))}),""]}function z(e,t){let r=e.replace(/[^A-Za-z0-9+/=]/g,"");r=r.replace(/=+([A-Za-z0-9+/])/g,"$1");let s=r.length%4;return s!=0&&t?e=r.slice(-s):e="",r=r.substring(0,r.length-s),r=r.replace(/(====)+$/g,""),[atob(r),e]}function C(e){for(var t=new Uint8Array(e.length),r=0;r<e.length;r++)t[r]=e.charCodeAt(r);return t}function O(e){var t="";for(let r=0;r<e.length;r+=100)t+=String.fromCharCode.apply(void 0,e.subarray(r,r+100));return t}var te=e=>C(atob(e)),re=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];function se(e){if(e.length===1)return e[0];let t=0;for(let n=0;n<e.length;n++){if(!(e[n]instanceof Uint8Array))throw new Error("concatArrays: Data must be in the form of a Uint8Array");t+=e[n].length}let r=new Uint8Array(t),s=0;return e.forEach(n=>{r.set(n,s),s+=n.length}),r}var W=class{constructor(){this.collectInput="",this.decodeString=we}decode(t,r={}){let s=r.stream;return t&&(this.collectInput+=O(t)),s?"":this.decodeString(this.collectInput)}},Z=class extends W{constructor(){super(),this.decodeString=Te}};function M(e,t){switch(e.toLowerCase()){case"utf-7":return new W;case"utf-7-imap":return new Z;case"cp932":return new TextDecoder("shift_jis",t);default:return new TextDecoder(e,t)}}function ne(e){let t=te(e),r="";for(let s=0,n=t.length;s<n;)r+=String.fromCharCode(t[s++]<<8|t[s++]);return r}var we=e=>e.replace(/\+([A-Za-z0-9/]*)-?/gi,(t,r)=>r===""?"+":ne(r)),Te=e=>e.replace(/&([^-]*)-/g,(t,r)=>r===""?"&":ne(r.replace(/,/g,"/")));var R=new Map,ie=new Map,I=new Map;function g(e,t,r){var s=e.toLowerCase();R.set(s,t),ie.set(s,r),I.set(s,e)}function D(e){let t=this;return e.reduce(function(r,s){return r.concat(t.parseAddressingHeader(s,!0))},[])}function E(e){Array.isArray(e)||(e=[e]),this.addAddresses(e)}g("Bcc",D,E);g("Cc",D,E);g("From",D,E);g("Reply-To",D,E);g("Resent-Bcc",D,E);g("Resent-Cc",D,E);g("Resent-From",D,E);g("Resent-Reply-To",D,E);g("Resent-Sender",D,E);g("Resent-To",D,E);g("Sender",D,E);g("To",D,E);g("Approved",D,E);g("Disposition-Notification-To",D,E);g("Delivered-To",D,E);g("Return-Receipt-To",D,E);g("Mail-Reply-To",D,E);g("Mail-Followup-To",D,E);function Ae(e,t,r){return this.parseParameterHeader(e[0],t,r)}function xe(e){let t=Ae.call(this,e,!1,!1),s=t.preSemi.split("/");s.length!=2&&(t=new Map,s=["text","plain"]);let n=s[0].toLowerCase(),a=s[1].toLowerCase(),o=n+"/"+a,i=new Map;return i.mediatype=n,i.subtype=a,i.type=o,t.forEach(function(l,f){i.set(f.toLowerCase(),l)}),i}R.set("Content-Type",xe);function F(e){return this.decodeRFC2047Words(e[0])}function B(e){this.addUnstructured(e)}function ae(e){return this.decodeRFC2047Words(e[0])}function oe(e){this.addUnstructured(e)}g("Comments",F,B);g("Keywords",F,B);g("Subject",F,B);g("MIME-Version",F,B);g("Content-Description",F,B);g("User-Agent",F,B);function U(e){return this.parseDateHeader(e[0])}function j(e){this.addDate(e)}g("Date",U,j);g("Resent-Date",U,j);g("Expires",U,j);g("Injection-Date",U,j);g("NNTP-Posting-Date",U,j);g("Message-ID",ae,oe);g("Resent-Message-ID",ae,oe);R.set("Content-Transfer-Encoding",function(e){return e[0].toLowerCase()});ie.set("Content-Transfer-Encoding",B);function le(e){let t=/<[^>]*>/g,r,s=[];for(;(r=t.exec(e))!==null;)s.push(r[0]);return s.join(" ")}R.set("References",le);R.set("In-Reply-To",le);var H={};function be(e){return e=e.replace(/[\xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/g," "),e=e.replace(/[\u034F\u17B4\u17B5\u180B-\u180D\uFE00-\uFE0F]/g,""),e=e.replace(/\uDB40[\uDD00-\uDDEF]/g,""),e=e.replace(/(?![\t\n\r])[\0-\x1F\x7F-\x9F]/g,""),e=e.replace(/(?:[\xAD\u061C\u06DD\u070F\u08E2\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u206F\uFEFF\uFFF9-\uFFFB]|\uD804[\uDCBD\uDCCD]|\uD80D[\uDC30-\uDC38]|\uD82F[\uDCA0-\uDCA3]|\uD834[\uDD73-\uDD7A]|\uDB40[\uDC01\uDC20-\uDC7F])/g," "),e=e.replace(/\u2800/g," "),e}function $(e,t,r){let s=[];function n(c){this.token=c.replace(/\\(.?)/g,"$1")}n.prototype.toString=function(){return this.token};let a,o=` 	\r
+`,i,l=0,f=e.length;for(let c=0;c<f;c++){let d=e[c];if(d=="\\"){c++;continue}if(i!==void 0){if(d==i&&d=='"'){let u=e.slice(a+1,c);r.rfc2047&&(u=K(u)),s.push(new n(u)),i=void 0,a=void 0}else d==i&&d=="]"&&(s.push(new n(e.slice(a,c+1))),i=void 0,a=void 0);continue}if(r.rfc2047&&d=="="&&c+1<e.length&&e[c+1]=="?"){let _=/([ \t\r\n]*=\?[^?]*\?[BbQq]\?[^?]*\?=)+/.exec(e.slice(c));if(_!==null){a!==void 0&&(s.push(new n(e.slice(a,c))),a=void 0);let h=_[0].length,m=K(e.slice(c,c+h),"UTF-8");s.push({toString(){return m}}),c+=h-1;continue}}let p=!1,y=!1,w=!1;o.includes(d)?p=!0:l==0&&t.includes(d)?(p=!0,w=!0):r.qstring&&d=='"'?(p=!0,y=!0,i=d):r.dliteral&&d=="["?(p=!0,y=!0,i="]"):r.comments&&d=="("?(l++,l==1?(p=!0,w=!0):y=!0):r.comments&&d==")"?(l>0&&l--,l==0?(p=!0,w=!0):y=!0):y=!0,p&&a!==void 0&&(s.push(new n(e.slice(a,c))),a=void 0),w&&s.push(d),y&&a===void 0&&(a=c)}return a!==void 0&&(i=='"'?s.push(new n(e.slice(a+1))):s.push(new n(e.slice(a)))),s}function Pe(e,t){if(/[\x80-\xff]/.exec(e)){let r=C(e),s=t&&!t.toLowerCase().startsWith("utf"),n=new M("utf-8",{fatal:s});try{e=n.decode(r)}catch{try{e=new M(t,{fatal:!1}).decode(r)}catch{}}}return e}function K(e){let t="",r;function s(o,i){let l=o.split("?");if(l.length!=5||l[4]!="=")return!1;let f=l[1].split("*",1)[0],c=l[2],d=l[3],p;if(c=="B"||c=="b"){if(/[^ A-Za-z0-9+/=]/.exec(d))return!1;p=z(d,!1)[0]}else if(c=="Q"||c=="q")p=N(d.replace(/_/g," "),!1)[0];else return!1;let y=p;p=C(p);var w="";if(f!=t&&r&&(w+=r.decode(),r=null),t=f,!r)try{r=new M(f,{fatal:!1})}catch{return!1}let u;return i||f.toUpperCase()=="ISO-2022-JP"&&y.endsWith("\x1B(B")?u={stream:!1}:u={stream:!0},w+r.decode(p,u)}let n=e.split(/(=\?[^?]*\?[BQbq]\?[^?]*\?=)/),a=-1;for(let o=0;o<n.length;o++)n[o].substring(0,2)=="=?"&&(a=o);for(let o=0;o<n.length;o++){if(n[o].substring(0,2)=="=?"){let i=s(n[o],o==a);if(i!==!1){n[o]=i;continue}}else if(/^[ \t\r\n]*$/.exec(n[o])){n[o]="";continue}t="",r&&(n[o]=r.decode()+n[o],r=null)}return n.join("")}function Ce(e,t){t===void 0&&(t=!0);let r=[],s=[],n="",a="",o="",i="",l="",f=!1,c=!1,d=!1,p=!1,y=!1,w=!1,u="";function _(h,m){let P=m.substring(0,m.lastIndexOf("@"));if(/[ !()<>[\]:;@\\,"]/.exec(P)!==null&&(m='"'+P.replace(/([\\"])/g,"\\$1")+'"'+m.substring(m.lastIndexOf("@"))),h=h.replace(/\s+/g," ").trim(),h===""&&u!==""){let A=u[0]===" "?2:1;h=u.substr(A,u.length-A-1)}(h!==""||m!=="")&&s.push({name:h,email:m}),n=o=i=u="",f=c=d=p=!1}for(let h of $(e,":,;<>@",{qstring:!0,comments:!0,dliteral:!0,rfc2047:t})){if(h===":")a=n,n="",o="",s.length>0&&(r=r.concat(s)),s=[];else if(h==="<"&&!p)f?(i.length>0&&(n=i),o=i=""):f=!0;else if(h===">"&&!p)f=!1,u="",p=!0;else if(h==="(")c=!0,y=d,d||(d=n!==""&&n.substr(-1)!==" "),l=d?" (":"(",w=!1;else if(h===")"){c=!1,l+=")",u=l,f?d=y:(n+=l,d=!0),w=!0;continue}else if(h==="@"){if(p)continue;f||(i=o,n="",o="",f=!0),i+="@"}else if(h===",")_(n,i),p=!1;else if(h===";")_(n,i),a===""?r=r.concat(s):r.push({name:a,group:s}),s=[],a="";else{h=be(h.toString());let m=h;d&&h&&h[0]!="."&&(m=" "+m),c?l+=m:f?i+=m:(p||(n+=m),w?(o+=h,w=!1):o+=m),d=h&&h[0]!=".";continue}d=!1}return _(n,i),a!==""&&(r.push({name:a,group:s}),s=[]),r.concat(s)}function He(e,t,r){var s=e.indexOf(";");let n,a;s<0?(n=e,a=""):(n=e.substring(0,s),a=e.substring(s)),n=n.trim().split(/[ \t\r\n]/)[0];let o={qstring:!0,rfc2047:t},i="",l=!0,f=[];for(let u of $(a,";=",o))u===";"?(i!=""&&!l&&f.push([i,""]),i="",l=!0):u==="="?l=!1:l&&i==""?i=u.toString():!l&&i!=""?(u=u.toString(),r&&i.endsWith("*")&&(u=u.replace(/%([0-9A-Fa-f]{2})/g,function(_,h){return String.fromCharCode(parseInt(h,16))})),f.push([i,u]),i=""):l&&(i="");i!=""&&!l&&f.push([i,""]);var c=new Map,d=new Map,p=new Map;for(let u of f){let _=u[0],h=u[1],m=_.indexOf("*");if(m==-1)c.has(_)||c.set(_,h);else if(m==_.length-1)_=_.substring(0,m),d.has(_)||d.set(_,h);else{let P=_.substring(0,m),A=p.get(P);if(p.has(P)&&!A.valid)continue;p.has(P)||(A=[],A.valid=!0,A.hasCharset=void 0,p.set(P,A));let ee=_[_.length-1]=="*",v=_.substring(m+1,_.length-(ee?1:0));if(v=="0")A.hasCharset=ee;else if(v.length==0||v[0]=="0"&&v!="0"||!/^[0-9]+$/.test(v)){A.valid=!1;continue}if(v=parseInt(v,10),A[v]!==void 0){A.valid=!1;continue}A[v]=h}}var y=new Map;for(let u of c)y.set(u[0],u[1]);if(r){for(let u of p){let _=u[0],h=u[1];if(h.hasCharset===void 0)continue;let m=!0;for(var w=0;m&&w<h.length;w++)h[w]===void 0&&(m=!1);let P=h.slice(0,w).join("");if(h.hasCharset)try{P=ce(P)}catch{continue}y.set(_,P)}for(let u of d)try{y.set(u[0],ce(u[1]))}catch{}}return y.preSemi=n,y}function ce(e){let t=e.indexOf("'"),r=t>=0?e.indexOf("'",t+1):-1,s=t>=0?e.substring(0,t):"";e=e.substring(Math.max(t,r)+1);let n=C(e);return new M(s,{fatal:!0}).decode(n,{stream:!1})}var de={UT:"+0000",GMT:"+0000",EST:"-0500",EDT:"-0400",CST:"-0600",CDT:"-0500",MST:"-0700",MDT:"-0600",PST:"-0800",PDT:"-0700",AST:"-0400",NST:"-0330",BST:"+0100",MET:"+0100",EET:"+0200",JST:"+0900"};function Se(e){let t=$(e,",:",{}).map(p=>p.toString());if(t.length>1&&t[1]===","&&(t=t.slice(2)),t.length<8)return new Date(NaN);let r=parseInt(t[0]),s=parseInt(t[2]),n=parseInt(t[3]),a=parseInt(t[5]),o=parseInt(t[7]),i=re.indexOf(t[1].slice(0,3));i<0&&(i=NaN),s<100&&(s+=s<50?2e3:1900);let l=t[8];l in de&&(l=de[l]);let f=/^([+-])(\d\d)(\d\d)$/.exec(l);f===null&&(f=["+0000","+","00","00"]);let c=parseInt(f[2])*60+parseInt(f[3]);return f[1]=="-"&&(c=-c),new Date(Date.UTC(s,i,r,n,a,o)-c*60*1e3)}var Q=new Map,he=new Set;for(let e of R)ue(e[0],e[1]),he.add(e[0].toLowerCase());function ve(e,t){if((typeof t=="string"||t instanceof String)&&(t=[t]),!Array.isArray(t))throw new TypeError("Header value is not an array: "+t);let r=e.toLowerCase();if(Q.has(r))return Q.get(r).call(H,t);throw new Error("Unknown structured header: "+e)}function ue(e,t){let r=e.toLowerCase();if(he.has(r))throw new Error("Cannot override header: "+e);Q.set(r,t),I.has(r)||I.set(r,e)}H.addStructuredDecoder=ue;H.convert8BitHeader=Pe;H.decodeRFC2047Words=K;H.getHeaderTokens=$;H.parseAddressingHeader=Ce;H.parseDateHeader=Se;H.parseParameterHeader=He;H.parseStructuredHeader=ve;var b=Object.freeze(H);function S(e,t){let r=e.split(/(?:\r\n|\n)(?![ \t])|\r(?![ \t\n])/);r.length>0&&r[0].substring(0,5)=="From "&&(r.shift(),r.length==0?e="":e=e.substring(e.indexOf(r[0])));let s=new Map;for(let n=0;n<r.length;n++){let a=r[n].indexOf(":"),o,i;a>=0?(o=r[n].substring(0,a),i=r[n].substring(a+1).trim(),t.stripcontinuations&&(i=i.replace(/[\r\n]/g,""))):(o=r[n],i=""),o=o.trim().toLowerCase(),o!=""&&(s.has(o)?s.get(o).push(i):s.set(o,[i]))}this._rawHeaders=s,this._cachedHeaders=new Map,Object.defineProperty(this,"rawHeaderText",{get(){return e}}),Object.defineProperty(this,"size",{get(){return this._rawHeaders.size}}),Object.defineProperty(this,"charset",{get(){return this._charset},set(n){this._charset=n,this._cachedHeaders.clear()}}),"charset"in t?this._charset=t.charset:this._charset=null,Object.defineProperty(this,"contentType",{configurable:!0,get(){return this.get("Content-Type")}})}S.prototype.getRawHeader=function(e){return this._rawHeaders.get(e.toLowerCase())};S.prototype.get=function(e){if(e=e.toLowerCase(),this._cachedHeaders.has(e))return this._cachedHeaders.get(e);let t=this._rawHeaders.get(e);if(t===void 0)return t;let r=this.charset;t=t.map(function(n){return b.convert8BitHeader(n,r)});let s;try{s=b.parseStructuredHeader(e,t)}catch{s=t.map(function(a){return b.decodeRFC2047Words(a)})}return this._cachedHeaders.set(e,s),s};S.prototype.has=function(e){return this._rawHeaders.has(e.toLowerCase())};var Oe=typeof Symbol=="function",Me=Oe?Symbol.iterator:"@@iterator";S.prototype[Me]=function*(){for(let e of this.keys())yield[e,this.get(e)]};S.prototype.forEach=function(e,t){for(let[r,s]of this)e.call(t,s,r,this)};S.prototype.entries=S.prototype[Symbol.iterator];function Re(e){return e.replace(/\b[a-z]/g,function(t){return t.toUpperCase()})}S.prototype.keys=function*(){for(let e of this._rawHeaders.keys())yield I.get(e)||Re(e)};S.prototype.values=function*(){for(let[,e]of this)yield e};function T(e,t){if(this._emitter=e,this._options={pruneat:"",bodyformat:"nodecode",strformat:"binarystring",stripcontinuations:!0,charset:"","force-charset":!1,onerror:()=>{}},t)for(var r in t)this._options[r]=t[r];if(typeof this._options.onerror!="function")throw new Error("onerror callback must be a function");this.resetParser()}T.prototype.resetParser=function(){this._state=Y,this._holdData="",this._headerData="",this._triggeredCall=!1,this._splitRegex=this._handleSplit=void 0,this._subparser=this._subPartNum=void 0,this._savedBuffer="",this._convertData=void 0,this._decoder=void 0};T.prototype.deliverData=function(e){this._holdData&&(e=this._holdData+e,this._holdData=""),e.length>0&&([e,this._holdData]=fe(e)),e.length!=0&&(this._triggeredCall||(this._callEmitter("startMessage"),this._triggeredCall=!0),this._dispatchData("",e,!0))};function fe(e){let t=e.lastIndexOf("\r",e.length-2),r=e.lastIndexOf(`
+`),s=r>t?r:t;return[e.substring(0,s+1),e.substring(s+1)]}T.prototype.deliverEOF=function(){this._triggeredCall||(this._triggeredCall=!0,this._callEmitter("startMessage")),this._holdData&&this._dispatchData("",this._holdData,!0),this._dispatchEOF(""),this._callEmitter("endMessage")};T.prototype._callEmitter=function(e,...t){if(this._emitter&&e in this._emitter){if(t.length>0&&this._willIgnorePart(t[0]))return;try{this._emitter[e].apply(this._emitter,t)}catch(r){this._options.onerror(r)}}};T.prototype._willIgnorePart=function(e){if(this._options.pruneat){let t=this._options.pruneat;if(e.substr(0,t.length)!=t||t.length<e.length&&!"$.".includes(e[t.length]))return!0}return!1};var Y=1,q=2,G=3,k=4;T.prototype._dispatchData=function(e,t,r){if(this._state==Y){this._headerData+=t;let s=/(?:^(?:\r\n|[\r\n]))|(\r\n|[\r\n])\1/.exec(this._headerData);if(s!=null){let n=this._headerData.substr(0,s.index);t=this._headerData.substring(s.index+s[0].length),this._headerData=n,this._headers=this._parseHeaders(),this._callEmitter("startPart",e,this._headers),this._startBody(e)}else return}if(r&&this._splitRegex){let s=this._splitRegex.exec(t);if(s){let n=s.index,a=s[0].length;n>0&&this._dispatchData(e,t.substr(0,n),!1),this._handleSplit(e,s),t=t.substring(n+a),t.length>0&&this._dispatchData(e,t,!0);return}}if(this._state!=q){if(this._state==G){if(!(this._options.bodyformat!="none")||this._willIgnorePart(e))return;let{coerced:n,raw:a}=this._applyDataConversion(t,this._options.strformat);this._callEmitter("deliverPartData",e,n,a)}else if(this._state==k){let{coerced:s}=this._applyDataConversion(t,"binarystring");t.length>0&&this._subparser._dispatchData(this._subPartNum,s,!0)}}};T.prototype._applyDataConversion=function(e,t){return this._convertData&&(e=this._savedBuffer+e,[e,this._savedBuffer]=this._convertData(e,!0)),{coerced:this._coerceData(e,t,!1),raw:e instanceof Uint8Array?e:C(e)}};T.prototype._coerceData=function(e,t,r){if(typeof e=="string"){if(t=="binarystring")return e;var s=C(e);return t=="unicode"?this._coerceData(s,"unicode",r):s}else{if(t=="binarystring")return O(e);if(t=="unicode")return this._decoder?this._decoder.decode(e,{stream:r}):e}throw new Error("Invalid type: "+t)};T.prototype._dispatchEOF=function(e){if(this._state==Y)this._headers=this._parseHeaders(),this._callEmitter("startPart",e,this._headers);else if(this._state==k)this._convertData&&this._savedBuffer&&this._subparser._dispatchData(this._subPartNum,this._convertData(this._savedBuffer,!1)[0],!0),this._subparser._dispatchEOF(this._subPartNum),this._subparser=null;else if(this._convertData&&this._savedBuffer){let[t]=this._convertData(this._savedBuffer,!1);t=this._coerceData(t,this._options.strformat,!1),t.length>0&&this._callEmitter("deliverPartData",e,t)}this._callEmitter("endPart",e)};T.prototype._parseHeaders=function(){let e=new S(this._headerData,this._options),t=e.get("Content-Type");typeof t>"u"?(t=b.parseStructuredHeader("Content-Type",this._defaultContentType||"text/plain"),Object.defineProperty(e,"contentType",{get(){return t}})):Object.defineProperty(e,"contentType",{configurable:!1});let r="";return this._options["force-charset"]?r=this._options.charset:t.has("charset")?r=t.get("charset"):r=this._options.charset,e.charset=r,this._charset=r,e};T.prototype._startBody=function(e){let t=this._headers.contentType;if(this._options.bodyformat=="raw"&&e==this._options.pruneat){this._state=G;return}if(t.mediatype=="multipart"){if(!t.has("boundary")){this._state=q;return}this._splitRegex=new RegExp(`(\r
+|[\r
+]|^)--`+t.get("boundary").replace(/[\\^$*+?.()|{}[\]]/g,"\\$&")+`(--)?[ 	]*(?:\r
+|[\r
+]|$)`),this._handleSplit=this._whenMultipart,this._subparser=new T(this._emitter,this._options),t.subtype=="digest"&&(this._subparser._defaultContentType="message/rfc822"),this._state=q,this._convertData=function(r,s){let n=r.length;s&&(r.charAt(n-1)==`
+`&&n--,n>=0&&r.charAt(n-1)=="\r"&&n--);let a=fe(r.substring(0,n)),o=a[0],i=a[1];return[o,i+r.substring(n)]}}else if(t.type=="message/rfc822"||t.type=="message/global"||t.type=="message/news"){this._state=k,this._subPartNum=e+"$",this._subparser=new T(this._emitter,this._options);let r=this._extractHeader("content-transfer-encoding","");r in L&&(this._convertData=L[r])}else if(this._state=G,this._options.bodyformat=="decode"){let r=this._extractHeader("content-transfer-encoding","");r in L&&(this._convertData=L[r])}if(this._options.strformat=="unicode"&&t.mediatype=="text"){if(this._decoder=null,this._charset!=="")try{this._decoder=new M(this._charset)}catch(r){console.error(r)}this._decoder||(this._decoder={decode(r){return T.prototype._coerceData(r,"binarystring",!0)}})}else this._decoder=null};T.prototype._whenMultipart=function(e,t){if(e!=""&&(e+="."),!this._subPartNum)this._count=1;else{if(this._savedBuffer!=""&&t[1]===""){let r=this._savedBuffer.length-1;this._savedBuffer[r]==`
+`&&r--,r>=0&&this._savedBuffer[r]=="\r"&&r--,this._savedBuffer=this._savedBuffer.substring(0,r+1)}this._savedBuffer!=""&&this._subparser._dispatchData(this._subPartNum,this._savedBuffer,!0),this._subparser._dispatchEOF(this._subPartNum)}this._savedBuffer="",t[2]==null?(this._subparser.resetParser(),this._state=k,this._subPartNum=e+this._count,this._count+=1):(this._splitRegex=null,this._state=q)};T.prototype._extractHeader=function(e,t){return e=e.toLowerCase(),this._headers.has(e)?this._headers.get(e):b.parseStructuredHeader(e,[t])};var L={};L["quoted-printable"]=N;L.base64=z;var V=T;var Be={getAttachmentName(e){if(!e||!e.headers)return"";if(e.headers["content-disposition"]){let t=x.getParameter(e.headers["content-disposition"][0],"filename");if(t)return t}if(e.headers["content-type"]){let t=x.getParameter(e.headers["content-type"][0],"name");if(t)return t}return""},isAttachment(e){if(!e)return!1;let t=e.contentType||"text/plain";if(t.search(/^multipart\//i)===0)return!1;let r="";return Array.isArray(e.headers["content-disposition"])&&e.headers["content-disposition"].length>0&&(r=e.headers["content-disposition"][0]),r.search(/^attachment/i)===0||t.search(/^text\/plain|^text\/html|^text\/enriched/i)===-1},startMessage(){this.mimeTree={partName:"",contentType:"message/rfc822",parts:[],size:0,headers:{},rawHeaderText:"",allAttachments:[],bodyParts:{text:[],html:[]},isEncrypted:!1},this.partsPath=[this.mimeTree],this.options=this.options||{}},endMessage(){if(this.mimeMsg=null,this.mimeTree.parts.length!=0){if(this.options.getMimePart){this.mimeTree.parts[0].partName==this.options.getMimePart&&(this.mimeMsg=this.mimeTree.parts[0],this.mimeMsg.bodyAsTypedArray=C(this.mimeMsg.body));return}this.mimeMsg=this.mimeTree}},startPart(e,t){let r=new TextEncoder,s=t.contentType&&t.contentType.type?t.contentType.type:"text/plain",n=t.rawHeaderText,a={};for(let[f,c]of t._rawHeaders){let d=Array.isArray(c)?c:[c];a[f]=d.map(p=>{let y=r.encode(p);return O(y)})}let o=this.partsPath[this.partsPath.length-1],i="1"+(e!==""?".":"")+e;i=="1"&&(o.rawHeaderText=n,n=n.split(/\n(?![ \t])/).filter(f=>f.toLowerCase().startsWith("content-")).join(`
+`).trim(),o.headers=a,a=Object.fromEntries(Object.entries(a).filter(f=>f[0].startsWith("content-")))),a["content-type"]||(a["content-type"]=["text/plain"]);let l={partName:i,rawBody:null,body:"",headers:a,rawHeaderText:n,contentType:s,size:0,parts:[],isEncrypted:!1};o.parts.push(l),this.partsPath.push(l)},endPart(e){let t=!1,r=this.partsPath[this.partsPath.length-1],s=r.body.length;if(r.size+=s,this.isAttachment(r)){r.fileName=this.getAttachmentName(r);let n=r.headers["content-disposition"]&&r.headers["content-disposition"][0],a=r.headers["content-id"]&&r.headers["content-id"][0];r.contentDisposition=n?n.split(";").shift():void 0,r.contentId=a||void 0,this.options.includeAttachments?this.mimeTree.allAttachments.push(r):t=!0}else if(r.rawBody)switch(delete r.rawBody,r.contentType||"text/plain"){case"text/html":this.mimeTree.bodyParts.html.push(r.body);break;case"text/plain":this.mimeTree.bodyParts.text.push(r.body);break}t&&(delete r.body,delete r.rawBody),r.headers=Object.fromEntries(Object.entries(r.headers).filter(n=>!["content-disposition","content-transfer-encoding"].includes(n[0]))),this.partsPath.pop(),r=this.partsPath[this.partsPath.length-1],r.size+=s},deliverPartData(e,t,r){let s=this.partsPath[this.partsPath.length-1];typeof t=="string"?s.body+=t:s.body+=O(t),s.rawBody===null?s.rawBody=r:s.rawBody=se([s.rawBody,r])}},pe={startPart(e,t){e==""&&(this.headers=t)}},Ie={body:"",startPart:pe.startPart,deliverPartData(e,t){e==""&&(this.body+=t)}},x={getParameter(e,t){t=t.toLowerCase(),e=e.replace(/[\r\n]+[ \t]+/g,"");let r=b.parseParameterHeader(";"+e,!0,!0);for(let[s,n]of r.entries())if(t==s.toLowerCase())return n;return""},parseSync(e,t,r){if(typeof e!="string")throw new Error("input is not a recognizable type!");var s=new V(t,r);s.deliverData(e),s.deliverEOF()},makeParser(e,t){return new V(e,t)},extractMimeMsg(e,t={}){var r=Object.create(Be);r.options={includeAttachments:!0,getMimePart:""};for(let s of Object.keys(t))r.options[s]=t[s];return x.parseSync(e,r,{pruneat:r.options.getMimePart.split(".").slice(1).join("."),bodyformat:"decode",stripcontinuations:!0,strformat:"unicode"}),r.mimeMsg},extractHeaders(e){var t=Object.create(pe);return x.parseSync(e,t,{pruneat:"",bodyformat:"none"}),t.headers},extractHeadersAndBody(e){var t=Object.create(Ie);return x.parseSync(e,t,{pruneat:"",bodyformat:"raw"}),[t.headers,t.body]},HEADER_UNSTRUCTURED:0,HEADER_PARAMETER:2,HEADER_ADDRESS:3,HEADER_OPTION_DECODE_2231:16,HEADER_OPTION_DECODE_2047:32,HEADER_OPTION_ALLOW_RAW:64,HEADER_OPTION_ALL_I18N:112,parseHeaderField(e,t,r){switch(t&x.HEADER_OPTION_ALLOW_RAW&&(e=b.convert8BitHeader(e,r)),t&15){case x.HEADER_UNSTRUCTURED:return t&x.HEADER_OPTION_DECODE_2047&&(e=b.decodeRFC2047Words(e)),e;case x.HEADER_PARAMETER:return b.parseParameterHeader(e,(t&x.HEADER_OPTION_DECODE_2047)!=0,(t&x.HEADER_OPTION_DECODE_2231)!=0);case x.HEADER_ADDRESS:return b.parseAddressingHeader(e,(t&x.HEADER_OPTION_DECODE_2047)!=0);default:throw new Error("Illegal type of header field")}}};function X(e){let t=typeof e=="string"?new TextEncoder().encode(e):e,{headers:r,allAttachments:s,bodyParts:n}=x.extractMimeMsg(O(t)),a=new Set(["message-id","content-id","from","sender","in-reply-to","reply-to","subject","date","content-disposition","content-type","content-transfer-encoding","priority","mime-version","content-description","precedence","errors-to"]),o={headers:r,attachments:s.map(({parts:i,partName:l,body:f,isEncrypted:c,rawBody:d,...p})=>({...p,content:d||new Uint8Array})),body:{html:n.html.length?n.html.join(`<br>
+`).replace(/\r?\n/g,`
+`):null,text:n.text.length?n.text.join(`
+`).replace(/\r?\n/g,`
+`):null}};return["subject","date","to","from","to","cc","bcc","message-id","in-reply-to","reply-to"].forEach(i=>{if(!r[i])return;let l=r[i]&&b.parseStructuredHeader(i,r[i]);o[i]=a.has(i)&&Array.isArray(l)?l[l.length-1]:l}),o}return Ee(Fe);})();
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+const parseMail = JsMime.parseMail;
+const APP_VER = '1.2.0';  // ThreadEngine application version — must match filename (v120)
+
+let archive = {
+  manifest: { version: 0, last_updated: null, parser_version: '1.2', changelog: [], settings: { internal_domains: ['umaryland.edu', 'umm.edu'] } },
+  registry: []   // raw_eml stored on record in memory, omitted on export
+};
+
+let threads = [];
+let filtered = [];
+let activeFilter = 'all';
+let sortDesc = true;      // newest-first
+let activeThreadId = null;
+let fuseInst = null;
+let debugTab = 'registry';
+let logOpen = false;
+let parseErrors = [];    // structured error log for debug drawer
+let selectedThreads = new Set();  // multi-select: set of thread IDs
+let selectMode = false;           // whether select mode is active
+
+// ═══════════════════════════════════════════════════
+// LOGGING
+// ═══════════════════════════════════════════════════
+function log(msg, type = 'info') {
+  const el = document.getElementById('logInner');
+  const d = document.createElement('div');
+  d.className = 'log-' + type;
+  const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
+  d.textContent = '[' + ts + '] ' + msg;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+  if (type === 'err' || type === 'warn') {
+    document.getElementById('logDrawer').classList.replace('closed', 'open');
+    logOpen = true;
+    document.getElementById('logBtn').style.color = type === 'err' ? 'var(--red)' : 'var(--amber)';
+  }
+}
+function toggleLog() {
+  logOpen = !logOpen;
+  const d = document.getElementById('logDrawer');
+  d.classList.toggle('open', logOpen);
+  d.classList.toggle('closed', !logOpen);
+}
+
+// ═══════════════════════════════════════════════════
+// FILE INPUT WIRING
+// ═══════════════════════════════════════════════════
+document.getElementById('jsonIn').onchange = async (e) => {
+  for (const f of e.target.files) {
+    try {
+      const data = JSON.parse(await f.text());
+      if (data.confirmed_thread_ids && data.te_thread_ids) {
+        applyConfirmedThreads(data);
+      } else {
+        mergeArchive(data);
+        log('Loaded ' + f.name, 'ok');
+      }
+    } catch(err) { log('JSON error ' + f.name + ': ' + err.message, 'err'); }
+  }
+  e.target.value = '';
+};
+document.getElementById('emlIn').onchange = async (e) => {
+  await ingestEMLFiles(e.target.files);
+  e.target.value = '';
+};
+
+// ═══════════════════════════════════════════════════
+// DRAG AND DROP
+// ═══════════════════════════════════════════════════
+let dragN = 0;
+document.addEventListener('dragenter', e => { e.preventDefault(); dragN++; document.getElementById('dropOverlay').classList.add('show'); });
+document.addEventListener('dragleave', () => { if (--dragN <= 0) { dragN = 0; document.getElementById('dropOverlay').classList.remove('show'); } });
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', async e => {
+  e.preventDefault(); dragN = 0;
+  document.getElementById('dropOverlay').classList.remove('show');
+  const jsons = [], emls = [];
+  for (const f of e.dataTransfer.files) {
+    if (f.name.toLowerCase().endsWith('.json')) jsons.push(f);
+    else if (f.name.toLowerCase().endsWith('.eml')) emls.push(f);
+  }
+  for (const f of jsons) {
+    try { mergeArchive(JSON.parse(await f.text())); log('Loaded ' + f.name, 'ok'); }
+    catch(err) { log('JSON error: ' + err.message, 'err'); }
+  }
+  if (emls.length) await ingestEMLFiles(emls);
+});
+
+// ═══════════════════════════════════════════════════
+// INGEST
+// ═══════════════════════════════════════════════════
+async function ingestEMLFiles(files) {
+  const arr = [...files].filter(f => f.name.toLowerCase().endsWith('.eml'));
+  if (!arr.length) return;
+  log('Ingesting ' + arr.length + ' EML file(s)…', 'info');
+  let ok = 0, skip = 0, warn = 0;
+  for (const f of arr) {
+    try {
+      const raw = await f.text();
+      const rec = parseEMLToRecord(raw, f.name);
+      const res = ingestRecord(rec);
+      if (res === 'added') {
+        ok++;
+        const conf = rec.parse_quality.confidence;
+        log('[' + conf + '] ' + (rec.from.display_name || rec.from.email) + ' → ' + rec.thread_subject.slice(0, 50), conf === 'HIGH' ? 'ok' : 'warn');
+        if (conf !== 'HIGH') {
+          parseErrors.push({ ts: new Date().toISOString(), file: f.name, type: 'quality', confidence: conf, issues: rec.parse_quality.issues, subject: rec.thread_subject });
+        }
+      } else if (res === 'promoted') {
+        ok++; log('Ghost→complete: ' + rec.thread_subject.slice(0, 50), 'ok');
+      } else {
+        skip++;
+        parseErrors.push({ ts: new Date().toISOString(), file: f.name, type: 'duplicate', message_id: rec.message_id, subject: rec.thread_subject });
+        log('Dup skipped: ' + f.name, 'warn');
+      }
+    } catch(err) {
+      log('PARSE ERROR ' + f.name + ': ' + err.message, 'err');
+      warn++;
+      parseErrors.push({ ts: new Date().toISOString(), file: f.name, type: 'parse_error', error: err.message, stack: err.stack?.split('\n').slice(0,3).join(' | ') });
+    }
+  }
+  archive.manifest.version++;
+  archive.manifest.last_updated = new Date().toISOString();
+  archive.manifest.changelog.push('v' + archive.manifest.version + ': +' + ok + ' msgs (' + arr.length + ' files)');
+  log('Done — ' + ok + ' added, ' + skip + ' dupes, ' + warn + ' warnings', ok > 0 ? 'ok' : 'warn');
+  rebuildUI();
+}
+
+function ingestRecord(rec) {
+  const idx = archive.registry.findIndex(r => r.message_id === rec.message_id);
+  if (idx > -1 && archive.registry[idx].status === 'ghost') {
+    archive.registry[idx] = { ...rec, status: 'complete' };
+    return 'promoted';
+  }
+  if (idx === -1) { archive.registry.push({ ...rec, status: 'complete' }); return 'added'; }
+  return 'dup';
+}
+
+function mergeArchive(data) {
+  // If the incoming data has a manifest with settings, merge them in
+  if (data.manifest?.settings?.internal_domains) {
+    if (!archive.manifest.settings) archive.manifest.settings = {};
+    archive.manifest.settings.internal_domains = data.manifest.settings.internal_domains;
+    log('Restored internal domain settings from archive', 'info');
+  }
+  const incoming = Array.isArray(data) ? data : (data.registry || []);
+  let added = 0;
+  for (const rec of incoming) { if (ingestRecord(rec) === 'added') added++; }
+  log('Merged ' + added + ' records (' + incoming.length + ' total in file)', 'ok');
+  rebuildUI();
+}
+
+function clearAll() {
+  if (!confirm('Clear all ' + archive.registry.length + ' messages?')) return;
+  archive.registry = [];
+  archive.manifest.version++;
+  activeThreadId = null;
+  rebuildUI();
+  log('Archive cleared', 'warn');
+}
+
+function exportArchive() {
+  archive.manifest.last_updated = new Date().toISOString();
+  const now = new Date();
+  const mmdd = String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+  const ver = 'v' + String(archive.manifest.version).padStart(2,'0');
+  // Omit raw_eml from export
+  const clean = {
+    manifest: archive.manifest,
+    registry: archive.registry.map(r => {
+      const { raw_eml, historical_quote_text, body_html, ...rest } = r;
+      return rest;  // registry_status + thread_note + thread_tags + thread_category persist
+    })
+  };
+  const blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'TEarchive_' + mmdd + '_' + ver + '_EE' + APP_VER + '.json';
+  a.click();
+  log('Exported TEarchive_' + mmdd + '_' + ver + '_EE' + APP_VER + '.json · ' + clean.registry.length + ' msgs', 'ok');
+}
+
+// Export thread-grouped JSON for AI bridge
+// Format: array of thread objects matching Project Registry capture schema input
+function exportAIPayload() {
+  if (!threads.length) { log('Nothing to export — load EML files first', 'warn'); return; }
+  const now = new Date();
+  const mmdd = String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+  const payload = threads.map(buildAIThreadPayload);
+  const now2 = new Date();
+  const mmdd2 = String(now2.getMonth()+1).padStart(2,'0') + String(now2.getDate()).padStart(2,'0');
+  const ver2 = 'v' + String(archive.manifest.version).padStart(2,'0');
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'TEai_' + mmdd2 + '_' + ver2 + '_EE' + APP_VER + '.json';
+  a.click();
+  log('Exported TEai_' + mmdd2 + '_' + ver2 + '_EE' + APP_VER + '.json · ' + payload.length + ' threads for AI bridge (bulk offline)', 'ok');
+}
+function parseEMLToRecord(rawEML, filename) {
+  const p = parseMail(rawEML);
+  const H = p.headers || {};
+  const first = k => { const v = H[k]; return Array.isArray(v) ? v[0] : v; };
+
+  // ── Header fields ──────────────────────────────
+  const rawMsgId   = (p['message-id'] || first('message-id') || '').replace(/[<>]/g, '').trim();
+  const messageId  = rawMsgId || ('GEN-' + filename + '-' + Date.now());
+  const inReplyTo  = (first('in-reply-to') || '').replace(/[<>]/g, '').trim() || null;
+  const references = (first('references') || '').replace(/[<>]/g, '').trim() || null;
+  const threadIdx  = first('thread-index') || null;
+  const threadTopic= first('thread-topic') || null;
+  const importance = (first('importance') || 'normal').toLowerCase();
+  const sensitivity= (first('sensitivity') || 'normal').toLowerCase();
+  const senderFlag = first('x-message-flag') || null;
+
+  const rawSubject  = p.subject || threadTopic || 'Untitled';
+  const threadSubj  = rawSubject.replace(/^(Re|Fwd?|FW):\s*/i, '').trim();
+
+  const tsISO = (() => { try { return p.date ? new Date(p.date).toISOString() : new Date().toISOString(); } catch { return new Date().toISOString(); } })();
+
+  // ── Addresses ──────────────────────────────────
+  const normA  = a => a ? { display_name: a.name || '', email: (a.email || '').toLowerCase() } : null;
+  const normAL = arr => (Array.isArray(arr) ? arr : arr ? [arr] : []).map(normA).filter(Boolean);
+  const from = normA(p.from) || { display_name: '', email: '' };
+  const to   = normAL(p.to);
+  const cc   = normAL(p.cc);
+
+  // ── Calendar / attachments ─────────────────────
+  const hasCalendar = (p.attachments || []).some(a => /calendar/i.test(a.contentType || ''));
+  const EXT_MAP = { xlsx:'spreadsheet',xls:'spreadsheet',pdf:'pdf',docx:'document',doc:'document',
+    pptx:'presentation',ppt:'presentation',zip:'archive',png:'image',jpg:'image',
+    jpeg:'image',gif:'image',csv:'spreadsheet',txt:'text',ics:'calendar' };
+  const attachments = (p.attachments || [])
+    .filter(a => !/calendar/i.test(a.contentType || '') && (a.fileName || a.contentType !== 'text/plain'))
+    .map(a => { const fn = a.fileName || ''; const ext = fn.split('.').pop().toLowerCase(); return { name: fn, type: EXT_MAP[ext] || ext || a.contentType }; })
+    .filter(a => a.name);
+
+  // ── Body + URL extraction ─────────────────────
+  // Store both plain text and HTML for toggle; prefer plain for primary display
+  const rawPlain = (p.body?.text || '').replace(/=\n/g, '');
+  const rawHtml  = p.body?.html || '';
+
+  // Extract URLs from plain text before cleanup
+  let rawBody = rawPlain || scrubHTML(rawHtml); // fallback to scrubbed HTML if no plain
+  rawBody = rawBody.replace(/=\n/g, '');
+
+  // Extract URLs (angle-bracket wrapped and bare) before body cleanup
+  const links = [];
+  const seenURLs = new Set();
+  rawBody = rawBody.replace(/<(https?:\/\/[^>]+)>/g, (_, url) => {
+    const norm = normalizeURL(url);
+    if (!seenURLs.has(norm)) { seenURLs.add(norm); links.push({ url: norm, type: classifyURL(norm) }); }
+    return '';
+  });
+  for (const m of rawBody.matchAll(/https?:\/\/[^\s<>,"]+/g)) {
+    const url = normalizeURL(m[0].replace(/[.,;)>]+$/, ''));
+    if (!seenURLs.has(url)) { seenURLs.add(url); links.push({ url, type: classifyURL(url) }); }
+  }
+
+  // Thread split on plain text
+  const { newContent, quoteText } = splitThread(rawBody);
+
+  // Strip boilerplate from new content only
+  const cleanBody = stripBoilerplate(newContent)
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  // Clean HTML body for toggle view — sanitize but keep structure
+  const cleanHtml = rawHtml ? sanitizeHTML(rawHtml) : '';
+
+  // ── Content-poor detection ───────────────────
+  const BOILERPLATE = [
+    'need help? | system reference',
+    'for organizers: meeting options',
+    'microsoft teams meeting',
+    'join microsoft teams meeting',
+    'join teams meeting',
+    'teams meeting id',
+  ];
+  const bodyLower = cleanBody.toLowerCase();
+  const isBoilerplateOnly = BOILERPLATE.some(b => bodyLower.includes(b)) ||
+    cleanBody.replace(/[\s\|]/g, '').length < 40;
+  const isContentPoor = cleanBody.length < 80 || (hasCalendar && isBoilerplateOnly);
+
+  // ── Quality scoring ───────────────────────────
+  const issues = [];
+  let score = 0;
+  if (!rawMsgId)                            { issues.push('generated_message_id'); }   else score += 30;
+  if (from.email)                           score += 20; else issues.push('no_from_email');
+  if (to.length > 0)                        score += 15; else issues.push('no_to_recipients');
+  if (cleanBody.length > 20 || hasCalendar) score += 20; else issues.push('empty_body');
+  if (!/^<[a-z]/i.test(cleanBody))         score += 10; else issues.push('html_in_body');
+  if (rawSubject !== 'Untitled')            score +=  5; else issues.push('no_subject');
+  const confidence = score >= 85 ? 'HIGH' : score >= 55 ? 'MEDIUM' : 'LOW';
+
+  const isExternal = !getInternalDomains().test(from.email);
+
+  return {
+    message_id:      messageId,
+    thread_index:    threadIdx,
+    in_reply_to:     inReplyTo,
+    references:      references,
+    thread_subject:  threadSubj,
+    raw_subject:     rawSubject,     // original un-stripped subject — needed for subject_evolution in AI bridge
+    timestamp_iso:   tsISO,
+    from, to, cc,
+    importance, sensitivity,
+    sender_flag_request: senderFlag,
+    body:            cleanBody,
+    body_html:       cleanHtml,   // stored in memory, not exported
+    historical_quote_present: !!quoteText,
+    historical_quote_text:    quoteText || null,  // stored in memory, not exported
+    links, attachments,
+    is_meeting_invite:  hasCalendar,
+    content_poor:       isContentPoor,
+    is_external_sender: isExternal,
+    has_attachments:    attachments.length > 0,
+    parse_quality:      { confidence, score, issues },
+    registry_status:    null,   // null | 'sent' | 'confirmed' | 'removed' — persists in export
+    thread_note:        null,   // user-authored freetext note — persists in export
+    thread_tags:        [],     // user-defined keyword tags — persists in export
+    thread_category:    null,   // user-defined category string — persists in export
+    raw_eml:            rawEML,  // stored in memory, not exported
+    status: 'complete'
+  };
+}
+
+// ── splitThread ──────────────────────────────────
+function splitThread(body) {
+  const markers = [
+    /^-{3,}\s*Original Message\s*-{3,}/mi,
+    /^From:[ \t]+.+\n(?:Sent|Date):[ \t]+/mi,
+    /^From:[ \t]+\S+@\S+/m,
+    /^On .{10,} wrote:$/m,
+    /^>{1,2} /m,
+  ];
+  const uRe = /^_{10,}\s*$/m;
+  const uMatch = body.match(uRe);
+  if (uMatch && uMatch.index > 100) markers.push(uRe);
+
+  let splitIdx = body.length;
+  for (const re of markers) {
+    const m = body.match(re);
+    if (m && m.index < splitIdx) splitIdx = m.index;
+  }
+  const hasQuote = splitIdx < body.length;
+  return {
+    newContent: body.slice(0, splitIdx),
+    quoteText: hasQuote ? body.slice(splitIdx).trim() : null
+  };
+}
+
+// ── stripBoilerplate ─────────────────────────────
+function stripBoilerplate(text) {
+  return text
+    .replace(/_{10,}/g, '')
+    .replace(/Microsoft Teams meeting[\s\S]{0,600}?(?=\n\n|$)/gi, '')
+    .replace(/[-_]{3,}\s*\n.*?Zoom Meeting[\s\S]{0,400}?(?=\n\n|$)/gi, '')
+    .replace(/This (e-?mail|message|communication) (is |may be )?(confidential|privileged|intended)[\s\S]*/i, '')
+    .replace(/^https?:\/\/\S+$/gm, '')
+    .trim();
+}
+
+// ── scrubHTML ────────────────────────────────────
+function scrubHTML(html) {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<\/?(p|div|br|tr|li|h[1-6]|blockquote)[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+    .replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// ── sanitizeHTML — safe HTML for iframe display ──
+function sanitizeHTML(html) {
+  return html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/\s*on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/href\s*=\s*["']?\s*javascript:[^"'\s>]*/gi, '')
+    .replace(/<(meta|link|base)[^>]*>/gi, '');
+}
+function normalizeURL(url) {
+  try { const u = new URL(url); if (u.hostname.includes('safelinks.protection.outlook.com')) { const i = u.searchParams.get('url'); if (i) return i; } } catch {}
+  return url;
+}
+function classifyURL(url) {
+  if (/teams\.microsoft\.com/i.test(url)) return 'teams';
+  if (/zoom\.us/i.test(url))              return 'zoom';
+  if (/sharepoint\.com/i.test(url))       return 'sharepoint';
+  if (/onedrive/i.test(url))              return 'onedrive';
+  if (/aka\.ms/i.test(url))               return 'microsoft';
+  if (/webex\.com/i.test(url))            return 'webex';
+  if (/meet\.google\.com/i.test(url))     return 'google-meet';
+  if (/dropbox\.com/i.test(url))          return 'dropbox';
+  if (/box\.com/i.test(url))              return 'box';
+  return 'external';
+}
+
+// ═══════════════════════════════════════════════════
+// THREAD GROUPING
+// ═══════════════════════════════════════════════════
+function buildThreads(registry) {
+  const map = new Map();
+  for (const msg of registry) {
+    const key = threadKey(msg);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(msg);
+  }
+  return [...map.entries()].map(([key, msgs]) => {
+    msgs.sort((a, b) => new Date(a.timestamp_iso) - new Date(b.timestamp_iso));
+    const latest = msgs[msgs.length - 1];
+    const earliest = msgs[0];
+    const allParticipants = uniqueParticipants(msgs);
+    return {
+      id: key,
+      subject: earliest.thread_subject || 'Untitled',
+      messages: msgs,
+      latest_ts: latest.timestamp_iso,
+      earliest_ts: earliest.timestamp_iso,
+      from_latest: latest.from,
+      preview: latest.body ? latest.body.slice(0, 100) : (latest.is_meeting_invite ? 'Meeting invite' : ''),
+      has_flagged:     msgs.some(m => m.sender_flag_request),
+      has_external:    msgs.some(m => m.is_external_sender),
+      has_meeting:     msgs.some(m => m.is_meeting_invite),
+      has_attachments: msgs.some(m => m.has_attachments),
+      has_warn:        msgs.some(m => m.parse_quality?.confidence === 'LOW'),
+      all_content_poor: msgs.every(m => m.content_poor),
+      any_content_poor: msgs.some(m => m.content_poor),
+      all_participants: allParticipants,
+      thread_tags: (() => {
+        const allTags = new Set();
+        msgs.forEach(m => (m.thread_tags||[]).forEach(t => allTags.add(t)));
+        return [...allTags];
+      })(),
+      thread_category: msgs.map(m => m.thread_category).find(c => c) || null,
+      thread_note: msgs.map(m => m.thread_note).find(n => n) || null,
+      registry_status: (() => {
+        const statuses = msgs.map(m => m.registry_status).filter(Boolean);
+        if (statuses.includes('confirmed')) return 'confirmed';
+        if (statuses.includes('sent')) return 'sent';
+        if (statuses.every(s => s === 'removed') && statuses.length) return 'removed';
+        return null;
+      })(),
+    };
+  }).sort((a, b) => sortDesc
+    ? new Date(b.latest_ts) - new Date(a.latest_ts)
+    : new Date(a.earliest_ts) - new Date(b.earliest_ts)
+  );
+}
+
+function threadKey(msg) {
+  if (msg.thread_index && msg.thread_index.length >= 8) return 'tidx:' + msg.thread_index.slice(0, 28);
+  return 'subj:' + (msg.thread_subject || '').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function uniqueParticipants(msgs) {
+  const seen = new Set();
+  const out = [];
+  for (const msg of msgs) {
+    for (const a of [msg.from, ...(msg.to||[]), ...(msg.cc||[])]) {
+      if (a?.email && !seen.has(a.email)) { seen.add(a.email); out.push(a); }
+    }
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════
+// SEARCH + FILTER
+// ═══════════════════════════════════════════════════
+let searchTimer;
+document.getElementById('searchInput').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(applyFilter, 160);
+  document.getElementById('searchClear').style.display = document.getElementById('searchInput').value ? '' : 'none';
+});
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    e.target.value = '';
+    document.getElementById('searchClear').style.display = 'none';
+    applyFilter();
+  }
+});
+document.getElementById('searchClear').addEventListener('click', () => {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').style.display = 'none';
+  applyFilter();
+  document.getElementById('searchInput').focus();
+});
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.fpill').forEach(p => p.classList.toggle('on', p.dataset.f === f));
+  applyFilter();
+}
+
+function applyFilter() {
+  const q = document.getElementById('searchInput').value.trim();
+  let base = threads;
+  if (activeFilter === 'flagged')  base = base.filter(t => t.has_flagged);
+  if (activeFilter === 'external') base = base.filter(t => t.has_external);
+  if (activeFilter === 'meeting')  base = base.filter(t => t.has_meeting);
+  if (activeFilter === 'attach')   base = base.filter(t => t.has_attachments);
+  if (activeFilter === 'warn')     base = base.filter(t => t.has_warn);
+
+  if (q && base.length) {
+    const f = new Fuse(base, {
+      keys: [
+        'subject',
+        'from_latest.display_name',
+        'from_latest.email',
+        'preview',
+        'thread_category',
+        { name: 'participants_text', getFn: t => t.all_participants.map(p => (p.display_name || '') + ' ' + (p.email || '')).join(' ') },
+        { name: 'tags_text', getFn: t => (t.thread_tags || []).join(' ') }
+      ],
+      threshold: 0.35, minMatchCharLength: 2
+    });
+    filtered = f.search(q).map(r => r.item);
+  } else {
+    filtered = base;
+  }
+  renderThreadList();
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER — THREAD LIST
+// ═══════════════════════════════════════════════════
+function renderThreadList() {
+  const list = document.getElementById('threadList');
+  document.getElementById('threadCount').textContent = filtered.length;
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-label">No threads match</div></div>';
+    return;
+  }
+  list.innerHTML = '';
+  filtered.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'ti' + (t.id === activeThreadId ? ' active' : '') + (selectedThreads.has(t.id) ? ' selected' : '');
+    el.style.animationDelay = Math.min(i * 15, 300) + 'ms';
+    el.onclick = () => {
+      if (selectMode) {
+        toggleSelect(t.id);
+      } else {
+        selectThread(t.id);
+      }
+    };
+    const from = t.from_latest;
+    const dispFrom = from?.display_name || from?.email || 'Unknown';
+    const badges = [
+      t.has_flagged    ? '<span class="bx b-flag">⚑ FLAG</span>' : '',
+      t.has_meeting    ? '<span class="bx b-mtg">⊙ MTG</span>' : '',
+      t.has_external   ? '<span class="bx b-ext">↗ EXT</span>' : '',
+      t.has_attachments? '<span class="bx b-att">⊘ FILE</span>' : '',
+      t.has_warn       ? '<span class="bx b-warn">⚠ WARN</span>' : '',
+      (t.thread_category ? '<span class="bx b-cat">' + esc(t.thread_category) + '</span>' : ''),
+      ...(t.thread_tags||[]).slice(0,2).map(tag => '<span class="bx b-tag">#' + esc(tag) + '</span>'),
+      t.all_content_poor ? '<span class="bx b-thin">&#9675; thin</span>' : '',
+      getRelatedThreads(t.id).length > 0 ? '<span class="bx b-related" data-tid="' + esc(t.id) + '" title="Related threads detected — click to open bridge with all">↔ related</span>' : '',
+      t.registry_status === 'sent'      ? '<span class="bx b-reg-sent">✓ REGISTRY</span>' : '',
+      t.registry_status === 'confirmed' ? '<span class="bx b-reg-ok">✓ CONFIRMED</span>' : '',
+      t.registry_status === 'removed'   ? '<span class="bx b-reg-rm">✕ REMOVED</span>' : '',
+      t.messages.length > 1 ? '<span class="bx b-msg">' + t.messages.length + '</span>' : '',
+    ].join('');
+    const checkHtml = selectMode ? '<div class="ti-check">' + (selectedThreads.has(t.id) ? '&#10003;' : '') + '</div>' : '';
+    el.innerHTML =
+      '<div class="ti-top">' + checkHtml + '<div class="ti-from">' + esc(dispFrom) + '</div><div class="ti-date">' + fmtDate(t.latest_ts) + '</div></div>' +
+      '<div class="ti-subj">' + esc(t.subject) + '</div>' +
+      (t.preview ? '<div class="ti-prev">' + esc(t.preview) + '</div>' : '') +
+      (badges ? '<div class="ti-badges">' + badges + '</div>' : '');
+    list.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER — THREAD DETAIL
+// ═══════════════════════════════════════════════════
+function selectThread(id) {
+  activeThreadId = id;
+  renderThreadList();
+  const thread = threads.find(t => t.id === id);
+  if (!thread) return;
+  renderDetail(thread);
+}
+
+function renderDetail(thread) {
+  const pane = document.getElementById('detailPane');
+  const parts = [thread.all_participants.slice(0,4).map(p => p.display_name || p.email).join(', ')];
+  if (thread.all_participants.length > 4) parts.push('+' + (thread.all_participants.length-4) + ' more');
+
+  const hdBadges = [
+    thread.has_flagged  ? '<span class="bx b-flag">⚑ Flagged</span>' : '',
+    thread.has_external ? '<span class="bx b-ext">↗ External</span>' : '',
+    thread.has_meeting  ? '<span class="bx b-mtg">⊙ Meeting</span>' : '',
+    thread.has_attachments ? '<span class="bx b-att">⊘ Attachments</span>' : '',
+  ].filter(Boolean).join('');
+
+    // Build header with safe DOM construction — no inline onclick with dynamic data
+  pane.innerHTML = '';
+
+  // Thread header (static HTML — no user data in event attributes)
+  const hdr = document.createElement('div');
+  hdr.className = 'thread-hdr';
+
+  const hdrTop = document.createElement('div');
+  hdrTop.style.cssText = 'display:flex;align-items:flex-start;gap:8px;';
+  const subjEl = document.createElement('div');
+  subjEl.className = 'th-subj';
+  subjEl.style.flex = '1';
+  subjEl.textContent = thread.subject;
+  const aiBtn = document.createElement('button');
+  aiBtn.className = 'ai-btn';
+  aiBtn.textContent = '✶ SEND TO REGISTRY';
+
+  // Per-thread message sort button
+  const tidSafeHdr = thread.id.replace(/[^a-z0-9]/gi,'');
+  const tSortBtn = document.createElement('button');
+  tSortBtn.className = 'sort-btn';
+  tSortBtn.id = 'tsort-' + tidSafeHdr;
+  tSortBtn.textContent = '↑ oldest first';
+  tSortBtn.addEventListener('click', () => toggleThreadSort(thread.id));
+  aiBtn.addEventListener('click', () => aiCapture(thread.id));
+  hdrTop.appendChild(subjEl);
+  hdrTop.appendChild(tSortBtn);
+  hdrTop.appendChild(aiBtn);
+
+  const metaRow = document.createElement('div');
+  metaRow.className = 'th-meta';
+  metaRow.innerHTML =
+    '<span class="th-meta-text">' + thread.messages.length + ' msg' + (thread.messages.length !== 1 ? 's' : '') + '</span>' +
+    '<span style="color:var(--border);">·</span>' +
+    '<span class="th-meta-text">' + esc(parts.join(' ')) + '</span>' +
+    (hdBadges ? '<span style="color:var(--border);">·</span>' + hdBadges : '');
+
+  hdr.appendChild(hdrTop);
+  hdr.appendChild(metaRow);
+  pane.appendChild(hdr);
+
+  // Tag section — uses DOM nodes, no innerHTML with dynamic onclick
+  const tagSection = document.createElement('div');
+  tagSection.className = 'tag-section';
+  tagSection.style.cssText = 'padding:4px 20px 0;background:var(--surface);border-bottom:1px solid var(--border);';
+  tagSection.appendChild(renderTagBar(thread));
+  pane.appendChild(tagSection);
+
+  // Thread note section
+  const noteSection = document.createElement('div');
+  noteSection.className = 'thread-note-section';
+  const noteLabel = document.createElement('div');
+  noteLabel.className = 'thread-note-label';
+  noteLabel.textContent = '✎ Thread note — included in AI bridge payload';
+  const noteTa = document.createElement('textarea');
+  noteTa.className = 'thread-note-ta';
+  noteTa.placeholder = 'Add context, observations, or action items for this thread…';
+  noteTa.value = thread.thread_note || '';
+  let noteSaveTimer;
+  noteTa.addEventListener('input', () => {
+    clearTimeout(noteSaveTimer);
+    noteSaveTimer = setTimeout(() => {
+      const val = noteTa.value.trim() || null;
+      for (const msg of thread.messages) {
+        const rec = archive.registry.find(r => r.message_id === msg.message_id);
+        if (rec) rec.thread_note = val;
+      }
+      // Update thread object in memory without full rebuild
+      thread.thread_note = val;
+      log('Note saved: ' + (thread.subject||'').slice(0,40), 'ok');
+    }, 800);
+  });
+  const noteHint = document.createElement('div');
+  noteHint.className = 'note-hint';
+  noteHint.textContent = 'Auto-saved · appears in AI JSON export · flows into Registry capture_notes';
+  noteSection.appendChild(noteLabel);
+  noteSection.appendChild(noteTa);
+  noteSection.appendChild(noteHint);
+  pane.appendChild(noteSection);
+
+  // Related threads strip
+  const relatedIds = getRelatedThreads(thread.id);
+  if (relatedIds.length > 0) {
+    const relSection = document.createElement('div');
+    relSection.style.cssText = 'padding:6px 20px;background:#0d0720;border-bottom:1px solid #4c1d95;display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+    const relLabel = document.createElement('span');
+    relLabel.style.cssText = 'font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#a78bfa;flex-shrink:0;';
+    relLabel.textContent = '↔ Related:';
+    relSection.appendChild(relLabel);
+    relatedIds.forEach(rid => {
+      const rt = threads.find(x => x.id === rid);
+      if (!rt) return;
+      const chip = document.createElement('span');
+      chip.style.cssText = 'font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#c4b5fd;cursor:pointer;background:#180a3a;border:1px solid #4c1d95;border-radius:3px;padding:2px 8px;white-space:nowrap;';
+      chip.title = 'Jump to thread';
+      chip.textContent = rt.subject.slice(0, 48) + (rt.subject.length > 48 ? '…' : '');
+      chip.addEventListener('click', () => selectThread(rid));
+      relSection.appendChild(chip);
+    });
+    const bridgeAllBtn = document.createElement('button');
+    bridgeAllBtn.style.cssText = 'margin-left:auto;font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#a78bfa;background:transparent;border:1px solid #4c1d95;border-radius:3px;padding:2px 10px;cursor:pointer;flex-shrink:0;';
+    bridgeAllBtn.textContent = '✶ Bridge all';
+    bridgeAllBtn.title = 'Send this thread + all related to AI bridge';
+    bridgeAllBtn.addEventListener('click', () => openBridge([thread.id, ...relatedIds]));
+    relSection.appendChild(bridgeAllBtn);
+    pane.appendChild(relSection);
+  }
+
+  // Message stack
+  const stack = document.createElement('div');
+  stack.className = 'msg-stack';
+  stack.id = 'msgStack';
+  pane.appendChild(stack);
+
+  const tLen = thread.messages.length;
+  thread.messages.forEach((msg, i) => {
+    const card = buildMsgCard(msg, i);
+    card._threadLen = tLen;
+    // Re-apply collapse: all but last start collapsed
+    if (i < tLen - 1) card.classList.add('collapsed');
+    else card.classList.remove('collapsed');
+    stack.appendChild(card);
+  });
+}
+
+function renderTagBar(thread) {
+  const tid = thread.id;
+  const frag = document.createDocumentFragment();
+
+  // Tag/category chip row
+  const barDiv = document.createElement('div');
+  barDiv.className = 'tag-bar';
+
+  const cat = thread.thread_category || '';
+  if (cat) {
+    const chip = document.createElement('span');
+    chip.className = 'cat-chip';
+    chip.textContent = cat + ' ';
+    const btn = document.createElement('button');
+    btn.textContent = '✕';
+    btn.addEventListener('click', () => setCategory(tid, ''));
+    chip.appendChild(btn);
+    barDiv.appendChild(chip);
+  }
+
+  (thread.thread_tags || []).forEach(tag => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.textContent = '#' + tag + ' ';
+    const btn = document.createElement('button');
+    btn.textContent = '✕';
+    btn.addEventListener('click', () => removeTag(tid, tag));
+    chip.appendChild(btn);
+    barDiv.appendChild(chip);
+  });
+
+  frag.appendChild(barDiv);
+
+  // Input row
+  const inputRow = document.createElement('div');
+  inputRow.className = 'tag-input-row';
+
+  if (!cat) {
+    const catInput = document.createElement('input');
+    catInput.className = 'tag-input';
+    catInput.placeholder = 'category…';
+    const catBtn = document.createElement('button');
+    catBtn.className = 'tag-add-btn cat';
+    catBtn.textContent = '+ cat';
+    catBtn.addEventListener('click', () => {
+      const v = catInput.value.trim();
+      if (v) { setCategory(tid, v); catInput.value = ''; }
+    });
+    catInput.addEventListener('keydown', e => { if (e.key === 'Enter') catBtn.click(); });
+    inputRow.appendChild(catInput);
+    inputRow.appendChild(catBtn);
+  }
+
+  const tagInput = document.createElement('input');
+  tagInput.className = 'tag-input';
+  tagInput.placeholder = '#keyword…';
+  tagInput.setAttribute('list', 'tagSuggestions');
+  const tagBtn = document.createElement('button');
+  tagBtn.className = 'tag-add-btn';
+  tagBtn.textContent = '+ tag';
+  tagBtn.addEventListener('click', () => {
+    const v = tagInput.value.replace(/^#/, '').trim();
+    if (v) { addTag(tid, v); tagInput.value = ''; }
+  });
+  tagInput.addEventListener('keydown', e => { if (e.key === 'Enter') tagBtn.click(); });
+  inputRow.appendChild(tagInput);
+  inputRow.appendChild(tagBtn);
+
+  frag.appendChild(inputRow);
+  return frag;
+}
+
+
+function buildMsgCard(msg, idx) {
+  const card = document.createElement('div');
+  const lowQ = msg.parse_quality?.confidence === 'LOW';
+  card.className = 'msg-card' + (msg.sender_flag_request ? ' flagged' : '') + (lowQ ? ' low-q' : '');
+  card.style.animationDelay = (idx * 35) + 'ms';
+
+  const from = msg.from || {};
+  const initials = (from.display_name || from.email || '?').split(/[\s,]/)[0].slice(0,2).toUpperCase();
+  const toLine = [...(msg.to||[]), ...(msg.cc||[])].map(a => a.display_name || a.email).join(', ');
+  const ccLine = (msg.cc||[]).length ? 'CC: ' + msg.cc.map(a => a.display_name || a.email).join(', ') : '';
+
+  const badges = [
+    msg.sender_flag_request ? '<span class="bx b-flag">⚑ ' + esc(msg.sender_flag_request) + '</span>' : '',
+    msg.is_meeting_invite   ? '<span class="bx b-mtg">⊙ Meeting</span>' : '',
+    msg.is_external_sender  ? '<span class="bx b-ext">↗ External</span>' : '',
+    msg.has_attachments     ? '<span class="bx b-att">⊘ Files</span>' : '',
+    msg.registry_status === 'sent'      ? '<span class="bx b-reg-sent">✓ sent to registry</span>' : '',
+    msg.registry_status === 'confirmed' ? '<span class="bx b-reg-ok">✓ in registry</span>' : '',
+    msg.registry_status === 'removed'   ? '<span class="bx b-reg-rm">✕ removed</span>' : '',
+    '<span class="bx b-msg">Q:' + (msg.parse_quality?.confidence || '?') + '</span>',
+  ].filter(Boolean).join('');
+
+  // Header
+  // Older messages start collapsed (all but the last in the thread)
+  const startCollapsed = idx < (card._threadLen || 0) - 1;
+  if (startCollapsed) card.classList.add('collapsed');
+  let html = '<div class="msg-hdr" style="cursor:pointer;" data-collapse-toggle="1">' +
+    '<div class="msg-avatar">' + esc(initials) + '</div>' +
+    '<div class="msg-meta">' +
+      '<div class="msg-from-row"><span class="msg-from">' + esc(from.display_name || from.email) + '</span>' +
+      '<span class="msg-email">&lt;' + esc(from.email) + '&gt;</span>' +
+      '<span class="msg-time">' + fmtDateTime(msg.timestamp_iso) + '</span></div>' +
+      (toLine ? '<div class="msg-rcpt">To: <span>' + esc(toLine) + '</span></div>' : '') +
+      (ccLine ? '<div class="msg-rcpt">' + esc(ccLine) + '</div>' : '') +
+      (badges ? '<div class="msg-badges">' + badges + '</div>' : '') +
+    '</div>' +
+  '</div>';
+
+  // Body
+  const bid = 'b' + Math.random().toString(36).slice(2,8);
+  const hasHtml = !!(msg.body_html && msg.body_html.trim().length > 20);
+  const hasPlain = !!(msg.body && msg.body.trim().length > 0);
+
+  if (msg.is_meeting_invite && (!msg.body || msg.body.length < 20)) {
+    const joinLink = (msg.links||[]).find(l => l.type === 'teams' && /\/meet\//i.test(l.url));
+    html += '<div class="body-toggle-bar">' +
+      '<button class="btog on" onclick="switchBodyView(\'' + bid + '\',\'mtg\',this)">meeting</button>' +
+      (hasHtml ? '<button class="btog" onclick="switchBodyView(\'' + bid + '\',\'html\',this)">html</button>' : '') +
+      '<button class="btog" onclick="switchBodyView(\'' + bid + '\',\'eml\',this)">raw eml</button>' +
+      '</div>';
+    html += '<div id="' + bid + '-mtg"><div class="mtg-block"><div class="mtg-label">⊙ Teams Meeting</div>' +
+      (joinLink ? '<a class="mtg-link" href="' + esc(joinLink.url) + '" target="_blank" rel="noopener">↗ Join meeting</a>' : '') +
+      (msg.body ? '<div style="margin-top:8px;font-size:12px;color:var(--text2);">' + esc(msg.body) + '</div>' : '') +
+      '</div></div>';
+    if (hasHtml) {
+      html += '<iframe id="' + bid + '-html" style="display:none;width:100%;border:none;min-height:60px;" ' +
+        'sandbox="allow-same-origin" data-html="' + esc(msg.body_html) + '"></iframe>';
+    }
+    html += '<div id="' + bid + '-eml" class="eml-view" style="display:none;">' +
+      esc(msg.raw_eml || '[ raw EML not available ]') + '</div>';
+  } else if (hasPlain || hasHtml) {
+    // Always show toggle bar — plain + html when available, plus always EML raw
+    const tabs = [];
+    if (hasPlain) tabs.push('<button class="btog on" onclick="switchBodyView(\'' + bid + '\',\'plain\',this)">plain</button>');
+    if (hasHtml)  tabs.push('<button class="btog' + (!hasPlain ? ' on' : '') + '" onclick="switchBodyView(\'' + bid + '\',\'html\',this)">html</button>');
+    tabs.push('<button class="btog" onclick="switchBodyView(\'' + bid + '\',\'eml\',this)">raw eml</button>');
+    html += '<div class="body-toggle-bar">' + tabs.join('') + '</div>';
+    // Plain text view
+    html += '<div id="' + bid + '-plain" class="msg-body' + (!hasPlain ? ' msg-body-empty' : '') + '">' +
+      (hasPlain ? esc(msg.body) : '[ no plain text body — try HTML or Raw EML view ]') + '</div>';
+    // HTML view (iframe sandbox)
+    if (hasHtml) {
+      html += '<iframe id="' + bid + '-html" style="display:none;width:100%;border:none;min-height:60px;" ' +
+        'sandbox="allow-same-origin" ' +
+        'data-html="' + esc(msg.body_html) + '"></iframe>';
+    }
+    // Raw EML view
+    html += '<div id="' + bid + '-eml" class="eml-view" style="display:none;">' +
+      esc(msg.raw_eml || '[ raw EML not available — loaded from JSON archive ]') + '</div>';
+    // Quote toggle
+    if (msg.historical_quote_present && msg.historical_quote_text) {
+      const qid = 'q' + Math.random().toString(36).slice(2,8);
+      html += '<button class="quote-btn" onclick="toggleQuote(\'' + qid + '\',this)">··· show quoted history</button>' +
+        '<div id="' + qid + '" class="msg-body-quote">' + esc(msg.historical_quote_text) + '</div>';
+    } else if (msg.historical_quote_present) {
+      html += '<div style="padding:4px 14px 10px;font-size:11px;color:var(--muted);font-style:italic;">··· quoted history clipped</div>';
+    }
+  } else {
+    html += '<div class="body-toggle-bar">' +
+      '<button class="btog on" onclick="switchBodyView(\'' + bid + '\',\'empty\',this)">body</button>' +
+      '<button class="btog" onclick="switchBodyView(\'' + bid + '\',\'eml\',this)">raw eml</button>' +
+      '</div>';
+    html += '<div id="' + bid + '-empty" class="msg-body-empty">[ no message body — check Raw EML view ]</div>';
+    html += '<div id="' + bid + '-eml" class="eml-view" style="display:none;">' +
+      esc(msg.raw_eml || '[ raw EML not available — loaded from JSON archive ]') + '</div>';
+  }
+
+  // Attachments
+  if ((msg.attachments||[]).length) {
+    html += '<div class="att-bar">' +
+      msg.attachments.map(a => '<span class="att-pill">⊘ ' + esc(a.name) + '</span>').join('') +
+    '</div>';
+  }
+
+  // Links (filter out primary meeting join link if meeting card shown)
+  const linksToShow = (msg.links||[]).filter(l =>
+    !(msg.is_meeting_invite && (!msg.body || msg.body.length < 20) && l.type === 'teams' && /\/meet\//i.test(l.url))
+  );
+  if (linksToShow.length) {
+    html += '<div class="links-bar">' + linksToShow.map(l =>
+      '<a class="link-pill" href="' + esc(l.url) + '" target="_blank" rel="noopener" title="' + esc(l.url) + '">' +
+      '<span class="link-type">[' + l.type + ']</span>' + esc(linkLabel(l.url)) + '</a>'
+    ).join('') + '</div>';
+  }
+
+  card.innerHTML = html;
+  // Wire collapse toggle on header click (safe — no string quoting issues)
+  const hdrEl = card.querySelector('.msg-hdr');
+  if (hdrEl) hdrEl.addEventListener('click', () => card.classList.toggle('collapsed'));
+  return card;
+}
+
+function toggleQuote(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const open = el.classList.toggle('open');
+  btn.textContent = open ? '··· hide quoted history' : '··· show quoted history';
+}
+
+function switchBodyView(bid, view, btn) {
+  const bar = btn.closest('.body-toggle-bar');
+  if (bar) bar.querySelectorAll('.btog').forEach(b => b.classList.toggle('on', b === btn));
+
+  // All possible panel suffixes for this card
+  const panels = ['plain','html','eml','mtg','empty'];
+  panels.forEach(suffix => {
+    const el = document.getElementById(bid + '-' + suffix);
+    if (el) el.style.display = 'none';
+  });
+
+  // Show requested view
+  const target = document.getElementById(bid + '-' + view);
+  if (target) {
+    target.style.display = '';
+
+    // Lazy-load iframe HTML content
+    if (view === 'html' && target.tagName === 'IFRAME' && !target.dataset.loaded) {
+      const doc = target.contentDocument || target.contentWindow?.document;
+      if (doc) {
+        const htmlContent = (target.dataset.html || '')
+          .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+        doc.open();
+        doc.write('<style>body{margin:10px 14px;font-family:-apple-system,sans-serif;font-size:13px;color:#1e293b;line-height:1.6;}a{color:#3b82f6;}img,table{max-width:100%;}*{word-break:break-word;}</style>' + htmlContent);
+        doc.close();
+        target.dataset.loaded = '1';
+        const resize = () => {
+          try {
+            const h = target.contentDocument?.body?.scrollHeight;
+            if (h) target.style.height = h + 'px';
+          } catch {}
+        };
+        setTimeout(resize, 80);
+        setTimeout(resize, 400);
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// REGISTRY STATUS
+// ═══════════════════════════════════════════════════
+// Called by AI bridge when thread is dispatched; also callable manually.
+// status: 'sent' | 'confirmed' | 'removed' | null (to clear)
+function setRegistryStatus(threadId, status) {
+  const thread = threads.find(t => t.id === threadId);
+  if (!thread) return;
+  // Apply to all messages in thread
+  for (const msg of thread.messages) {
+    const rec = archive.registry.find(r => r.message_id === msg.message_id);
+    if (rec) rec.registry_status = status;
+  }
+  rebuildUI();
+  log('Registry status → ' + (status || 'cleared') + ': ' + thread.subject.slice(0, 50), 'ok');
+}
+// ═══════════════════════════════════════════════════
+// THREAD TAGS & CATEGORIES
+// ═══════════════════════════════════════════════════
+function addTag(threadId, tag) {
+  tag = (tag||'').trim().toLowerCase().replace(/[^a-z0-9\-_]/g,'');
+  if (!tag) return;
+  const thread = threads.find(t => t.id === threadId);
+  if (!thread) return;
+  for (const msg of thread.messages) {
+    const rec = archive.registry.find(r => r.message_id === msg.message_id);
+    if (rec) {
+      if (!Array.isArray(rec.thread_tags)) rec.thread_tags = [];
+      if (!rec.thread_tags.includes(tag)) rec.thread_tags.push(tag);
+    }
+  }
+  rebuildUI();
+}
+
+function removeTag(threadId, tag) {
+  const thread = threads.find(t => t.id === threadId);
+  if (!thread) return;
+  for (const msg of thread.messages) {
+    const rec = archive.registry.find(r => r.message_id === msg.message_id);
+    if (rec && Array.isArray(rec.thread_tags)) {
+      rec.thread_tags = rec.thread_tags.filter(t => t !== tag);
+    }
+  }
+  rebuildUI();
+}
+
+function setCategory(threadId, cat) {
+  cat = (cat||'').trim();
+  const thread = threads.find(t => t.id === threadId);
+  if (!thread) return;
+  for (const msg of thread.messages) {
+    const rec = archive.registry.find(r => r.message_id === msg.message_id);
+    if (rec) rec.thread_category = cat || null;
+  }
+  rebuildUI();
+}
+
+
+// Update tag autocomplete datalist from all known tags in archive
+
+const threadMsgSort = new Map();  // threadId -> 'asc'|'desc'
+
+function toggleThreadSort(threadId) {
+  const current = threadMsgSort.get(threadId) || 'asc';
+  const next = current === 'asc' ? 'desc' : 'asc';
+  threadMsgSort.set(threadId, next);
+  const btn = document.getElementById('tsort-' + threadId.replace(/[^a-z0-9]/gi,''));
+  if (btn) btn.textContent = next === 'asc' ? '↑ oldest first' : '↓ newest first';
+  // Re-render messages in the stack
+  const stack = document.getElementById('msgStack');
+  if (!stack) return;
+  const thread = threads.find(t => t.id === threadId);
+  if (!thread) return;
+  const msgs = next === 'desc'
+    ? [...thread.messages].reverse()
+    : thread.messages;
+  stack.innerHTML = '';
+  const tLen = msgs.length;
+  msgs.forEach((msg, i) => {
+    const card = buildMsgCard(msg, i);
+    card._threadLen = tLen;
+    if (i < tLen - 1) card.classList.add('collapsed');
+    stack.appendChild(card);
+  });
+}
+
+function updateTagSuggestions() {
+  const dl = document.getElementById('tagSuggestions');
+  if (!dl) return;
+  const allTags = new Set();
+  archive.registry.forEach(r => (r.thread_tags || []).forEach(t => allTags.add(t)));
+  dl.innerHTML = [...allTags].sort().map(t => '<option value="' + t + '">').join('');
+}
+
+
+function toggleTopMenu() {
+  document.getElementById('topDropdown').classList.toggle('open');
+}
+function closeTopMenu() {
+  document.getElementById('topDropdown').classList.remove('open');
+}
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('#topDropdown') && !e.target.closest('#menuBtn')) {
+    closeTopMenu();
+  }
+});
+async function handleJson2(input) {
+  for (const f of input.files) {
+    try { mergeArchive(JSON.parse(await f.text())); log('Loaded ' + f.name, 'ok'); }
+    catch(err) { log('JSON error: ' + err.message, 'err'); }
+  }
+  input.value = '';
+  closeTopMenu();
+}
+async function handleEml2(input) {
+  await ingestEMLFiles(input.files);
+  input.value = '';
+  closeTopMenu();
+}
+// ═══════════════════════════════════════════════════
+// MULTI-SELECT
+// ═══════════════════════════════════════════════════
+function toggleSelectMode() {
+  selectMode = !selectMode;
+  if (!selectMode) selectedThreads.clear();
+  const btn = document.getElementById('selectModeBtn');
+  if (btn) { btn.textContent = selectMode ? '\u2715 selecting' : '\u229f select'; btn.style.color = selectMode ? 'var(--amber)' : ''; }
+  const bar = document.getElementById('selectBar');
+  if (bar) bar.classList.toggle('visible', selectMode);
+  renderThreadList();
+  updateSelCount();
+}
+
+function toggleSelect(threadId) {
+  if (selectedThreads.has(threadId)) selectedThreads.delete(threadId);
+  else selectedThreads.add(threadId);
+  updateSelCount();
+  renderThreadList();
+}
+
+function selectAll() { filtered.forEach(t => selectedThreads.add(t.id)); updateSelCount(); renderThreadList(); }
+function selectNone() { selectedThreads.clear(); updateSelCount(); renderThreadList(); }
+function updateSelCount() {
+  const el = document.getElementById('selCount');
+  if (el) el.textContent = selectedThreads.size;
+}
+
+function getSelectedThreads() { return threads.filter(t => selectedThreads.has(t.id)); }
+
+function exportSelected() {
+  const sel = getSelectedThreads();
+  if (!sel.length) { log('No threads selected', 'warn'); return; }
+  const now = new Date();
+  const mmdd = String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+  const ver = 'v' + String(archive.manifest.version).padStart(2,'0');
+  const payload = sel.map(buildAIThreadPayload);
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'TEai_sel' + sel.length + '_' + mmdd + '_' + ver + '_EE' + APP_VER + '.json';
+  a.click();
+  log('Exported ' + sel.length + ' selected thread(s)', 'ok');
+}
+
+function sendSelectedToRegistry() {
+  const sel = getSelectedThreads();
+  if (!sel.length) { log('No threads selected', 'warn'); return; }
+  openBridge(sel.map(t => t.id));
+}
+
+
+// ═══════════════════════════════════════════════════
+// TOKEN ESTIMATION & BATCH SIZING
+// ═══════════════════════════════════════════════════
+const TOKENS_PER_OUTPUT_CAPTURE = 1000; // ~1k output tokens per registry capture
+const MAX_OUTPUT_TOKENS = 8000;
+const SAFE_THREADS_PER_BATCH = Math.floor(MAX_OUTPUT_TOKENS / TOKENS_PER_OUTPUT_CAPTURE); // 8
+
+// Estimate input tokens for a thread payload (~1 token per 4 chars)
+function estimateThreadTokens(t) {
+  const bodyChars = t.messages.reduce((sum, m) => sum + (m.body||'').length, 0);
+  const metaChars = JSON.stringify({
+    subject: t.subject, participants: t.all_participants,
+    tags: t.thread_tags, note: t.thread_note, time: t.latest_ts
+  }).length;
+  return Math.ceil((bodyChars + metaChars) / 4);
+}
+
+// Given an array of thread IDs, return optimal batches
+// Each batch: ≤8 threads AND estimated input tokens ≤ 40,000
+function computeBatches(threadIds) {
+  const INPUT_TOKEN_LIMIT = 40000; // conservative — well within 200k context
+  const batches = [];
+  let current = [], currentTokens = 0;
+
+  for (const tid of threadIds) {
+    const t = threads.find(x => x.id === tid);
+    if (!t) continue;
+    const payload = buildAIThreadPayload(t);
+    const est = estimateThreadTokens(payload);
+
+    // Start new batch if this thread would exceed limits
+    if (current.length > 0 && (current.length >= SAFE_THREADS_PER_BATCH || currentTokens + est > INPUT_TOKEN_LIMIT)) {
+      batches.push({ ids: current, estInputTokens: currentTokens });
+      current = []; currentTokens = 0;
+    }
+    current.push(tid);
+    currentTokens += est;
+  }
+  if (current.length) batches.push({ ids: current, estInputTokens: currentTokens });
+  return batches;
+}
+
+function buildAIThreadPayload(t) {
+  return {
+    thread_subject: t.subject,
+    source_account: 'outlook',
+    thread_tags: t.thread_tags || [],
+    thread_category: t.thread_category || null,
+    thread_note: t.thread_note || null,
+    time_span: { first_seen: t.earliest_ts.slice(0,10), last_seen: t.latest_ts.slice(0,10) },
+    participants: t.all_participants.map(p => ({
+      name: p.display_name || p.email,
+      email: p.email,
+      role: getInternalDomains().test(p.email || '') ? 'internal' : 'external'
+    })),
+    has_meeting_invite: t.has_meeting,
+    has_attachments: t.has_attachments,
+    registry_status: t.registry_status,
+    messages: t.messages.map(m => {
+      // Meeting invite body fallback: if body is empty/poor, use sanitized HTML
+      let bodyText = m.body || '';
+      if (m.is_meeting_invite && bodyText.length < 20 && m.body_html && m.body_html.trim().length > 30) {
+        bodyText = '[Meeting invite — extracted from HTML] ' + scrubHTML(m.body_html).slice(0, 800);
+      }
+      return {
+        timestamp: m.timestamp_iso,
+        from_name: m.from.display_name || m.from.email,
+        from_email: m.from.email,
+        subject: m.raw_subject || m.thread_subject,
+        body: bodyText,
+        sender_flag_request: m.sender_flag_request || null,
+        is_meeting_invite: m.is_meeting_invite,
+        links: (m.links||[]).map(l => l.url),
+        attachments: (m.attachments||[]).map(a => a.name)
+      };
+    })
+  };
+}
+
+function aiCapture(threadId) {
+  openBridge([threadId]);
+}
+
+// ═══════════════════════════════════════════════════
+// AI BRIDGE — REGISTRY CAPTURE (Milestone 3)
+// ═══════════════════════════════════════════════════
+let bridgeThreadIds = [];
+let bridgeResult = null;     // parsed JSON array from Claude
+let bridgeRawText = '';      // raw streaming text
+let bridgeActiveTids = [];   // threads actually checked/sent (module-level for download)
+
+const SYSTEM_PROMPT = `You are a project intelligence analyst. Given the email thread(s) below, produce a JSON array where each element is one thread conforming to the Project Registry canonical schema v1.8.3.
+
+REQUIRED FIELDS per thread:
+  thread_id          Stable slug: THREAD-YYYY-MM-DD-TOPIC-SLUG (earliest date + 2-4 word slug from earliest subject, lowercase, hyphens only)
+  subject_evolution  All distinct subject lines, chronological order
+  source_account     "outlook"
+  urgency            "URGENT" | "SOON" | "MONTH" | "Not Urgent"
+  capture_scope      (use the value provided in the input)
+  capture_notes      2-5 sentence prose summary: what is this thread about, what has happened, where do things stand?
+  priority_actions   Concrete next steps as plain-English verb phrases. Empty array [] if none. Max 6.
+  participants       [{name, role}] where role is "internal" or "external"
+  time_span          {first_seen: YYYY-MM-DD, last_seen: YYYY-MM-DD}
+  thread_signals:
+    signal_confidence  "HIGH" (decision/commitment reached) | "MEDIUM" (active discussion) | "LOW" (informational)
+    key_points         3-6 concrete observations, complete phrases
+    candidate_topics   2-5 short topic tags (1-3 words each)
+  emails[]           Each message: {timestamp, sender, subject, body_excerpt (1-3 sentences), email_role}
+  email_role values: "initiation" | "response" | "decision" | "action_request" | "information" | "escalation"
+
+RULES:
+- Do not fabricate. Empty array > invented entry.
+- signal_confidence must reflect what was ACTUALLY resolved. Most threads are MEDIUM or LOW.
+- priority_actions must be actionable. "Follow up with X re: Y" not "Awaiting response".
+- thread_id must use the earliest email date. Never include message counts.
+- If thread_note is provided, incorporate its context into capture_notes and priority_actions.
+- If thread_tags or thread_category are provided, use them to inform candidate_topics and urgency.
+
+Output ONLY the JSON array. No preamble, no markdown fences, no commentary.`;
+
+function openBridge(threadIds) {
+  bridgeThreadIds = threadIds || [];
+  bridgeResult = null;
+  bridgeRawText = '';
+
+  // Populate thread list
+  const listEl = document.getElementById('bridgeThreadList');
+  const countEl = document.getElementById('bridgeCount');
+  listEl.innerHTML = '';
+  countEl.textContent = bridgeThreadIds.length;
+
+  const batches = computeBatches(bridgeThreadIds);
+  const totalEstTokens = batches.reduce((s, b) => s + b.estInputTokens, 0);
+
+  bridgeThreadIds.forEach(tid => {
+    const t = threads.find(x => x.id === tid);
+    if (!t) return;
+    const payload = buildAIThreadPayload(t);
+    const estTok = estimateThreadTokens(payload);
+    const poor = t.all_content_poor;
+    const row = document.createElement('div');
+    row.className = 'bridge-thread-row';
+    row.style.opacity = poor ? '.55' : '';
+    row.innerHTML =
+      '<input type="checkbox" ' + (poor ? '' : 'checked') + ' data-tid="' + esc(tid) + '" style="accent-color:var(--blue);flex-shrink:0;" onchange="syncBridgeSelection()">' +
+      '<span class="bridge-thread-subj">' + esc(t.subject) +
+        (poor ? ' <em style="font-size:10px;color:var(--muted);">(thin — no body)</em>' : '') +
+      '</span>' +
+      '<span class="bridge-thread-meta">~' + estTok + ' tok &bull; ' + t.messages.length + ' msg</span>';
+    listEl.appendChild(row);
+  });
+
+  // Show batch plan and token summary
+  const planEl = document.getElementById('bridgePlan');
+  if (planEl) {
+    const poorCount = bridgeThreadIds.filter(tid => { const t = threads.find(x=>x.id===tid); return t?.all_content_poor; }).length;
+    planEl.innerHTML =
+      (batches.length > 1 ? '<strong>' + batches.length + ' batches</strong> of ' + batches.map(b=>b.ids.length).join(', ') + ' threads &bull; ' : '') +
+      '~' + totalEstTokens.toLocaleString() + ' input tokens estimated' +
+      (poorCount > 0 ? ' &bull; <span style="color:var(--muted);">' + poorCount + ' thin thread(s) unchecked</span>' : '');
+    planEl.style.display = '';
+  }
+
+  // Reset UI
+  document.getElementById('bridgeStatusWrap').style.display = 'none';
+  document.getElementById('bridgeOutputWrap').style.display = 'none';
+  document.getElementById('bridgeValidationWrap').style.display = 'none';
+  document.getElementById('bridgeCopyBtn').disabled = true;
+  document.getElementById('bridgeDownloadBtn').disabled = true;
+  document.getElementById('bridgeRunBtn').disabled = false;
+  document.getElementById('bridgeRunBtn').textContent = '\u2736 RUN BRIDGE';
+  const outEl = document.getElementById('bridgeOutput');
+  outEl.textContent = '';
+  outEl.contentEditable = 'false';
+  document.getElementById('bridgeOverlay').classList.add('show');
+}
+
+function closeBridge() {
+  document.getElementById('bridgeOverlay').classList.remove('show');
+}
+
+function syncBridgeSelection() {
+  // Re-read which threads are checked in the bridge modal
+  const checked = [...document.querySelectorAll('#bridgeThreadList input[type=checkbox]:checked')];
+  const activeTids = checked.map(cb => cb.dataset.tid);
+  const batches = computeBatches(activeTids);
+  const totalEst = batches.reduce((s,b) => s + b.estInputTokens, 0);
+  const planEl = document.getElementById('bridgePlan');
+  if (planEl) {
+    planEl.innerHTML =
+      (batches.length > 1 ? '<strong>' + batches.length + ' batches</strong> of ' + batches.map(b=>b.ids.length).join(', ') + ' &bull; ' : '') +
+      activeTids.length + ' thread(s) &bull; ~' + totalEst.toLocaleString() + ' input tokens';
+  }
+}
+
+async function runBridge() {
+  const runBtn = document.getElementById('bridgeRunBtn');
+  const statusWrap = document.getElementById('bridgeStatusWrap');
+  const outputWrap = document.getElementById('bridgeOutputWrap');
+  const statusEl = document.getElementById('bridgeStatus');
+  const outputEl = document.getElementById('bridgeOutput');
+  const metaEl = document.getElementById('bridgeOutputMeta');
+
+  if (!bridgeThreadIds.length) { log('No threads for bridge', 'warn'); return; }
+
+  runBtn.disabled = true;
+  runBtn.textContent = 'Running\u2026';
+  statusWrap.style.display = '';
+  statusEl.className = 'bridge-status';
+  statusEl.textContent = 'Building payload\u2026';
+  outputWrap.style.display = '';
+  outputEl.innerHTML = '<span class="stream-cursor"></span>';
+  bridgeRawText = '';
+
+  const model = document.getElementById('bridgeModel').value;
+  const captureScope = document.getElementById('bridgeCapture').value;
+  const includeContext = document.getElementById('bridgeIncludeNotes').checked;
+
+  // Read which threads are checked (respects thin-thread unchecking)
+  const checkedBoxes = [...document.querySelectorAll('#bridgeThreadList input[type=checkbox]:checked')];
+  const activeTids = checkedBoxes.length ? checkedBoxes.map(cb => cb.dataset.tid) : bridgeThreadIds;
+  bridgeActiveTids = activeTids; // store module-level for bridgeDownload()
+  if (!activeTids.length) { statusEl.textContent = 'No threads selected'; runBtn.disabled = false; runBtn.textContent = '\u2736 RUN BRIDGE'; return; }
+
+  const batches = computeBatches(activeTids);
+  log('AI bridge: ' + activeTids.length + ' thread(s) → ' + batches.length + ' batch(es) via ' + model, 'info');
+
+  // Accumulate results across all batches
+  const allResults = [];
+  bridgeRawText = '';
+
+  for (let bIdx = 0; bIdx < batches.length; bIdx++) {
+    const batch = batches[bIdx];
+    const batchLabel = batches.length > 1 ? 'Batch ' + (bIdx+1) + '/' + batches.length + ': ' : '';
+
+    statusEl.textContent = batchLabel + 'Building payload for ' + batch.ids.length + ' thread(s)\u2026';
+
+    const threadPayloads = batch.ids.map(tid => {
+      const t = threads.find(x => x.id === tid);
+      if (!t) return null;
+      const payload = buildAIThreadPayload(t);
+      payload.capture_scope = captureScope;
+      // Seed stable thread_id hint for Claude
+      const earliest = t.messages[0];
+      const dateStr = earliest.timestamp_iso.slice(0,10);
+      const slugWords = (earliest.raw_subject || earliest.thread_subject || '')
+        .replace(/^(re|fwd?|fw):\s*/i,'').split(/\s+/)
+        .filter(w => w.length > 2).slice(0,3)
+        .map(w => w.toLowerCase().replace(/[^a-z0-9]/g,'')).join('-');
+      payload.suggested_thread_id = 'THREAD-' + dateStr + (slugWords ? '-' + slugWords : '');
+      if (!includeContext) { delete payload.thread_note; delete payload.thread_tags; delete payload.thread_category; }
+      return payload;
+    }).filter(Boolean);
+
+    const userMessage = 'Process the following ' + threadPayloads.length + ' email thread(s) and produce the Registry capture JSON array.\n\n' +
+      'Use the suggested_thread_id field as the thread_id (modify only if structurally wrong).\n\n' +
+      JSON.stringify(threadPayloads, null, 2);
+
+    statusEl.textContent = batchLabel + 'Calling Claude ' + model + '\u2026';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model,
+        max_tokens: MAX_OUTPUT_TOKENS,
+        stream: true,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userMessage }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: { message: response.statusText } }));
+      throw new Error((err.error?.message) || ('HTTP ' + response.status));
+    }
+
+    // Stream the response for this batch
+    const batchIdx = bIdx;
+    statusEl.textContent = (batches.length > 1 ? 'Batch ' + (bIdx+1) + '/' + batches.length + ': ' : '') + 'Streaming\u2026';
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '', batchRawText = '';
+    outputEl.innerHTML = '<span class="stream-cursor"></span>';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+        try {
+          const evt = JSON.parse(data);
+          if (evt.type === 'content_block_delta' && evt.delta?.text) {
+            batchRawText += evt.delta.text;
+            outputEl.innerHTML = esc(batchRawText) + '<span class="stream-cursor"></span>';
+            outputEl.scrollTop = outputEl.scrollHeight;
+          }
+        } catch {}
+      }
+    }
+
+    // Remove cursor
+    outputEl.textContent = batchRawText;
+
+    // Parse batch result and accumulate
+    const cleanText = batchRawText.replace(/^```[a-z]*\n?|```$/gm, '').trim();
+    const batchResult = JSON.parse(cleanText);
+    const batchArr = Array.isArray(batchResult) ? batchResult : [batchResult];
+    allResults.push(...batchArr);
+    bridgeRawText += (batchIdx > 0 ? '\n\n// --- Batch ' + (bIdx+1) + ' ---\n\n' : '') + batchRawText;
+    outputEl.textContent = JSON.stringify(allResults, null, 2);
+    statusEl.textContent = 'Batch ' + (bIdx+1) + '/' + batches.length + ' complete (' + batchArr.length + ' capture(s))';
+
+  } catch (err) {
+    statusEl.className = 'bridge-status err';
+    statusEl.textContent = '\u2717 Error in batch ' + (bIdx+1) + ': ' + err.message;
+    outputEl.textContent = err.message;
+    log('Bridge error (batch ' + (bIdx+1) + '): ' + err.message, 'err');
+    runBtn.disabled = false;
+    runBtn.textContent = '\u2736 RETRY';
+    return; // stop processing further batches on error
+  }
+
+  } // end batch for-loop
+
+  // All batches complete
+  bridgeResult = allResults;
+  const threadCount = allResults.length;
+  statusEl.className = 'bridge-status ok';
+  statusEl.textContent = '\u2713 Complete \u2014 ' + threadCount + ' capture(s) in ' + batches.length + ' batch(es)';
+  metaEl.textContent = '(' + threadCount + ' thread' + (threadCount !== 1 ? 's' : '') + ' · ' + batches.length + ' API call' + (batches.length !== 1 ? 's' : '') + ')';
+
+  // Enable editing of output
+  outputEl.contentEditable = 'true';
+
+  // Run validation and show checklist
+  const valResult = validateBridgeResult(allResults);
+  document.getElementById('bridgeValidationWrap').style.display = '';
+  renderBridgeValidation(valResult);
+
+  document.getElementById('bridgeCopyBtn').disabled = false;
+  document.getElementById('bridgeDownloadBtn').disabled = !valResult.downloadOk;
+
+  // Mark threads as sent
+  bridgeActiveTids.forEach(tid => setRegistryStatus(tid, 'sent'));
+  log('Bridge complete: ' + threadCount + ' capture(s) from ' + batches.length + ' batch(es)', 'ok');
+}
+
+function bridgeCopy() {
+  if (!bridgeResult) return;
+  // Read from (possibly edited) output element
+  const outputEl = document.getElementById('bridgeOutput');
+  const text = outputEl.innerText || outputEl.textContent || JSON.stringify(bridgeResult, null, 2);
+  navigator.clipboard.writeText(text)
+    .then(() => log('Registry JSON copied to clipboard', 'ok'))
+    .catch(() => log('Clipboard write failed — use Save instead', 'warn'));
+}
+
+function bridgeDownload() {
+  if (!bridgeResult) return;
+
+  // Parse from (possibly edited) contenteditable output
+  const outputEl = document.getElementById('bridgeOutput');
+  const rawText = (outputEl.innerText || outputEl.textContent || '').trim();
+  let finalResult;
+  try {
+    const clean = rawText.replace(/^```[a-z]*\n?|```$/gm, '').trim();
+    finalResult = JSON.parse(clean);
+    if (!Array.isArray(finalResult)) finalResult = [finalResult];
+  } catch (e) {
+    log('Download blocked — JSON parse error: ' + e.message + '. Fix the JSON in the output panel.', 'err');
+    document.getElementById('bridgeValidationWrap').style.display = '';
+    renderBridgeValidation({ parseOk: false, downloadOk: false, issues: ['JSON parse error: ' + e.message], warnings: [], counts: {} });
+    return;
+  }
+
+  // Re-validate edited content
+  const valResult = validateBridgeResult(finalResult);
+  renderBridgeValidation(valResult);
+  if (!valResult.downloadOk) {
+    log('Download blocked — validation failed. Check the checklist.', 'err');
+    return;
+  }
+
+  bridgeResult = finalResult; // update in-memory with any edits
+
+  const now = new Date();
+  const mmdd = String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+  const ver = 'v' + String(archive.manifest.version).padStart(2,'0');
+  const fileBase = 'RegistryCapture_' + mmdd + '_' + ver + '_TE' + APP_VER;
+
+  // 1. Download the Registry capture JSON
+  const captureBlob = new Blob([JSON.stringify(finalResult, null, 2)], { type: 'application/json' });
+  const a1 = document.createElement('a');
+  a1.href = URL.createObjectURL(captureBlob);
+  a1.download = fileBase + '.json';
+  a1.click();
+
+  // 2. Download confirmed_threads.json
+  const confirmedThreadIds = finalResult.filter(r => r.thread_id).map(r => r.thread_id);
+  const confirmedPayload = {
+    exported_at: now.toISOString(),
+    source_file: fileBase + '.json',
+    te_version: APP_VER,
+    confirmed_thread_ids: confirmedThreadIds,
+    te_thread_ids: bridgeActiveTids
+  };
+  const confBlob = new Blob([JSON.stringify(confirmedPayload, null, 2)], { type: 'application/json' });
+  const a2 = document.createElement('a');
+  a2.href = URL.createObjectURL(confBlob);
+  a2.download = 'confirmed_threads_' + mmdd + '.json';
+  setTimeout(() => a2.click(), 200);
+
+  // 3. Update registry_status to confirmed
+  bridgeActiveTids.forEach(tid => setRegistryStatus(tid, 'confirmed'));
+  rebuildUI();
+  log('Saved ' + fileBase + '.json + confirmed_threads_' + mmdd + '.json', 'ok');
+}
+
+// Load confirmed_threads.json back into ThreadEngine (called from JSON archive loader)
+function applyConfirmedThreads(confirmedJson) {
+  try {
+    const data = typeof confirmedJson === 'string' ? JSON.parse(confirmedJson) : confirmedJson;
+    const tids = data.te_thread_ids || [];
+    let updated = 0;
+    tids.forEach(tid => {
+      const thread = threads.find(t => t.id === tid);
+      if (thread && thread.registry_status !== 'confirmed') {
+        setRegistryStatus(tid, 'confirmed');
+        updated++;
+      }
+    });
+    if (updated) log('Loaded confirmed_threads: ' + updated + ' thread(s) confirmed', 'ok');
+    else log('confirmed_threads: no new confirmations', 'info');
+  } catch(e) { log('confirmed_threads parse error: ' + e.message, 'err'); }
+}
+
+// ═══════════════════════════════════════════════════
+// SETTINGS PANEL
+// ═══════════════════════════════════════════════════
+function getInternalDomains() {
+  const domains = (archive.manifest.settings?.internal_domains || ['umaryland.edu', 'umm.edu'])
+    .map(d => d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|');
+  return new RegExp(domains || 'umaryland\\.edu|umm\\.edu', 'i');
+}
+
+function openSettings() {
+  renderDomainList();
+  document.getElementById('settingsOverlay').classList.add('show');
+  document.getElementById('domainInput').value = '';
+}
+
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('show');
+}
+
+function saveSettings() {
+  // Domain list is already updated in-place by add/remove; just close and rebuild
+  rebuildUI();
+  log('Settings saved · ' + (archive.manifest.settings.internal_domains||[]).length + ' internal domain(s)', 'ok');
+  closeSettings();
+}
+
+function renderDomainList() {
+  if (!archive.manifest.settings) archive.manifest.settings = { internal_domains: ['umaryland.edu', 'umm.edu'] };
+  const domains = archive.manifest.settings.internal_domains || [];
+  const listEl = document.getElementById('domainList');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+  if (!domains.length) {
+    listEl.innerHTML = '<div style="font-size:11px;color:var(--muted);font-family:\'IBM Plex Mono\',monospace;padding:4px 0;">No internal domains configured — all senders will be marked external.</div>';
+    return;
+  }
+  domains.forEach((d, i) => {
+    const row = document.createElement('div');
+    row.className = 'domain-row';
+    const span = document.createElement('span');
+    span.textContent = d;
+    const btn = document.createElement('button');
+    btn.className = 'domain-remove';
+    btn.title = 'Remove';
+    btn.textContent = '×';
+    btn.addEventListener('click', () => settingsRemoveDomain(i));
+    row.appendChild(span);
+    row.appendChild(btn);
+    listEl.appendChild(row);
+  });
+}
+
+function settingsAddDomain() {
+  const input = document.getElementById('domainInput');
+  let val = (input.value || '').trim().toLowerCase().replace(/^@/, '');
+  if (!val) return;
+  // Basic validation: must contain a dot
+  if (!val.includes('.')) { log('Invalid domain — must contain a dot (e.g. example.edu)', 'warn'); return; }
+  if (!archive.manifest.settings) archive.manifest.settings = { internal_domains: [] };
+  if (!Array.isArray(archive.manifest.settings.internal_domains)) archive.manifest.settings.internal_domains = [];
+  if (!archive.manifest.settings.internal_domains.includes(val)) {
+    archive.manifest.settings.internal_domains.push(val);
+    renderDomainList();
+    log('Added internal domain: ' + val, 'ok');
+  }
+  input.value = '';
+  input.focus();
+}
+
+function settingsRemoveDomain(idx) {
+  const domains = archive.manifest.settings?.internal_domains;
+  if (!domains) return;
+  const removed = domains.splice(idx, 1);
+  renderDomainList();
+  log('Removed internal domain: ' + removed[0], 'warn');
+}
+
+// Wire Enter key on domain input
+(function() {
+  const di = document.getElementById('domainInput');
+  if (di) di.addEventListener('keydown', e => { if (e.key === 'Enter') settingsAddDomain(); });
+})();
+
+// ═══════════════════════════════════════════════════
+// BRIDGE JSON VALIDATION
+// ═══════════════════════════════════════════════════
+const REQUIRED_FIELDS = ['thread_id', 'capture_notes', 'urgency', 'participants', 'time_span', 'thread_signals'];
+const VALID_URGENCY = ['URGENT', 'SOON', 'MONTH', 'Not Urgent'];
+
+function validateBridgeResult(results) {
+  if (!Array.isArray(results) || !results.length) {
+    return { parseOk: true, downloadOk: false, issues: ['Result is empty or not an array'], warnings: [], counts: { total: 0, ok: 0 } };
+  }
+  const issues = [];
+  const warnings = [];
+  let ok = 0;
+
+  results.forEach((r, i) => {
+    const label = r.thread_id ? r.thread_id : 'Thread #' + (i+1);
+    let entryOk = true;
+    REQUIRED_FIELDS.forEach(f => {
+      if (!r[f]) { issues.push(label + ': missing ' + f); entryOk = false; }
+    });
+    if (r.urgency && !VALID_URGENCY.includes(r.urgency)) {
+      warnings.push(label + ': urgency "' + r.urgency + '" not in schema');
+    }
+    if (r.priority_actions && r.priority_actions.length === 0) {
+      warnings.push(label + ': priority_actions is empty — intentional?');
+    }
+    if (r.participants && !r.participants.length) {
+      warnings.push(label + ': no participants listed');
+    }
+    if (entryOk) ok++;
+  });
+
+  return {
+    parseOk: true,
+    downloadOk: issues.length === 0,
+    issues,
+    warnings,
+    counts: { total: results.length, ok }
+  };
+}
+
+function renderBridgeValidation(val) {
+  const el = document.getElementById('bridgeValidation');
+  if (!el) return;
+  const rows = [];
+
+  if (!val.parseOk) {
+    rows.push('<div class="val-row val-err">✕ ' + esc(val.issues[0] || 'JSON parse failed') + '</div>');
+  } else {
+    const pct = val.counts.total > 0 ? Math.round(val.counts.ok / val.counts.total * 100) : 0;
+    const allOk = val.issues.length === 0;
+    rows.push('<div class="val-row ' + (allOk ? 'val-ok' : 'val-err') + '">' +
+      (allOk ? '✓' : '✕') + ' ' + val.counts.ok + '/' + val.counts.total + ' captures passed required-field check (' + pct + '%)</div>');
+    val.issues.forEach(iss => rows.push('<div class="val-row val-err" style="padding-left:14px;">✕ ' + esc(iss) + '</div>'));
+    val.warnings.forEach(w => rows.push('<div class="val-row val-warn" style="padding-left:14px;">⚠ ' + esc(w) + '</div>'));
+    if (allOk && !val.warnings.length) {
+      rows.push('<div class="val-row val-ok" style="margin-top:4px;">&#10003; Ready to download</div>');
+    } else if (val.issues.length > 0) {
+      rows.push('<div class="val-row val-err" style="margin-top:4px;">✕ Fix issues above before downloading, or edit the JSON output directly</div>');
+    }
+  }
+  el.innerHTML = rows.join('');
+
+  // Re-enable/disable download button based on result
+  const dlBtn = document.getElementById('bridgeDownloadBtn');
+  if (dlBtn) dlBtn.disabled = !val.downloadOk;
+}
+
+// ═══════════════════════════════════════════════════
+// THREAD SIMILARITY SCORING
+// ═══════════════════════════════════════════════════
+let similarityMap = new Map(); // threadId → Set of related threadIds
+
+function tokenizeSubject(subj) {
+  return new Set((subj || '').toLowerCase()
+    .replace(/^(re|fwd?|fw):\s*/i, '')
+    .split(/\W+/)
+    .filter(w => w.length > 2 && !['the','and','for','with','from','this','that','your','have','will','about'].includes(w))
+  );
+}
+
+function jaccardSets(a, b) {
+  if (!a.size || !b.size) return 0;
+  let inter = 0;
+  for (const v of a) if (b.has(v)) inter++;
+  return inter / (a.size + b.size - inter);
+}
+
+function computeSimilarityMap() {
+  similarityMap = new Map();
+  if (threads.length < 2) return;
+
+  const THRESHOLD = 0.30;
+
+  // Pre-compute sets once
+  const subjTokens = threads.map(t => tokenizeSubject(t.subject));
+  const emailSets = threads.map(t => new Set(t.all_participants.map(p => p.email).filter(Boolean)));
+
+  for (let i = 0; i < threads.length; i++) {
+    for (let j = i + 1; j < threads.length; j++) {
+      const subjScore = jaccardSets(subjTokens[i], subjTokens[j]);
+      const partScore = jaccardSets(emailSets[i], emailSets[j]);
+      // Weight: participant overlap is stronger signal than subject overlap
+      const score = subjScore * 0.4 + partScore * 0.6;
+      if (score >= THRESHOLD) {
+        if (!similarityMap.has(threads[i].id)) similarityMap.set(threads[i].id, new Set());
+        if (!similarityMap.has(threads[j].id)) similarityMap.set(threads[j].id, new Set());
+        similarityMap.get(threads[i].id).add(threads[j].id);
+        similarityMap.get(threads[j].id).add(threads[i].id);
+      }
+    }
+  }
+}
+
+function getRelatedThreads(threadId) {
+  return [...(similarityMap.get(threadId) || [])];
+}
+
+// ═══════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === '/') { e.preventDefault(); document.getElementById('searchInput').focus(); }
+  if (e.key === 'j' || e.key === 'ArrowDown') navigateThread(1);
+  if (e.key === 'k' || e.key === 'ArrowUp')   navigateThread(-1);
+  if (e.key === 'Escape') {
+    closeDebug();
+    if (document.getElementById('settingsOverlay').classList.contains('show')) closeSettings();
+    if (document.getElementById('bridgeOverlay').classList.contains('show')) closeBridge();
+  }
+});
+
+function navigateThread(dir) {
+  if (!filtered.length) return;
+  const idx = filtered.findIndex(t => t.id === activeThreadId);
+  const next = Math.max(0, Math.min(filtered.length - 1, idx + dir));
+  selectThread(filtered[next].id);
+  // Scroll into view
+  const items = document.querySelectorAll('.ti');
+  if (items[next]) items[next].scrollIntoView({ block: 'nearest' });
+}
+
+// ═══════════════════════════════════════════════════
+// SORT
+// ═══════════════════════════════════════════════════
+function toggleSort() {
+  sortDesc = !sortDesc;
+  document.getElementById('sortBtn').textContent = sortDesc ? '↓ newest' : '↑ oldest';
+  threads = buildThreads(archive.registry);
+  applyFilter();
+}
+
+// ═══════════════════════════════════════════════════
+// DEBUG DRAWER
+// ═══════════════════════════════════════════════════
+function toggleDebug() {
+  const d = document.getElementById('debugDrawer');
+  d.classList.toggle('open');
+  if (d.classList.contains('open')) refreshDebug();
+}
+function closeDebug() { document.getElementById('debugDrawer').classList.remove('open'); }
+function refreshDebug() {
+  let clean;
+  if (debugTab === 'registry') {
+    clean = archive.registry.map(r => { const { raw_eml, historical_quote_text, body_html, ...rest } = r; return rest; });
+  } else if (debugTab === 'manifest') {
+    clean = archive.manifest;
+  } else if (debugTab === 'errors') {
+    clean = parseErrors.length ? parseErrors : [{ info: 'No errors or warnings recorded in this session.' }];
+  }
+  document.getElementById('debugPre').textContent = JSON.stringify(clean, null, 2);
+}
+
+function setDebugTab(tab) {
+  debugTab = tab;
+  document.querySelectorAll('.dtab').forEach(t => t.classList.toggle('on', t.textContent.toLowerCase() === tab));
+  refreshDebug();
+}
+
+// ═══════════════════════════════════════════════════
+// STATS + REBUILD
+// ═══════════════════════════════════════════════════
+function rebuildUI() {
+  threads = buildThreads(archive.registry);
+  computeSimilarityMap();
+  fuseInst = new Fuse(threads, { keys: ['subject','from_latest.display_name','from_latest.email','preview','thread_category',{name:'tags_text',getFn:t=>(t.thread_tags||[]).join(' ')}], threshold: 0.35, minMatchCharLength: 2 });
+  applyFilter();
+  updateStats();
+  // Re-render detail pane if a thread is selected — catches new messages added to active thread
+  if (activeThreadId) {
+    const still = threads.find(t => t.id === activeThreadId);
+    if (still) renderDetail(still);
+    else {
+      activeThreadId = null;
+      document.getElementById('detailPane').innerHTML =
+        '<div class="detail-empty"><div class="icon">✦</div><p>SELECT A THREAD</p></div>';
+    }
+  }
+  if (debugTab && document.getElementById('debugDrawer').classList.contains('open')) refreshDebug();
+  updateTagSuggestions();
+}
+
+function updateStats() {
+  const r = archive.registry;
+  document.getElementById('sMsgs').textContent    = r.length;
+  document.getElementById('sThreads').textContent = threads.length;
+  document.getElementById('sMtg').textContent     = r.filter(x => x.is_meeting_invite).length;
+  document.getElementById('sExt').textContent     = r.filter(x => x.is_external_sender).length;
+  const warns = r.filter(x => x.parse_quality?.confidence === 'LOW').length;
+  document.getElementById('sWarn').textContent    = warns;
+  document.getElementById('sWarn').className      = 'tstat-val' + (warns > 0 ? ' warn' : '');
+  document.getElementById('verBadge').textContent = 'v' + APP_VER + ' · r' + archive.manifest.version;
+}
+
+// ═══════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso), now = new Date();
+  const diff = now - d;
+  if (diff < 86400000 && d.getDate() === now.getDate()) return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+  if (diff < 604800000) return d.toLocaleDateString('en-US',{weekday:'short'});
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + ' ' +
+    d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+function linkLabel(url) {
+  try { const u = new URL(url); return (u.hostname.replace(/^www\./,'') + u.pathname).slice(0,36); }
+  catch { return url.slice(0,36); }
+}
+
+// Event delegation for Related badge clicks (badges are inside .ti, re-rendered each time)
+document.getElementById('threadList').addEventListener('click', e => {
+  const badge = e.target.closest('.b-related');
+  if (!badge) return;
+  e.stopPropagation();
+  const tid = badge.dataset.tid;
+  if (!tid) return;
+  const related = getRelatedThreads(tid);
+  if (!related.length) return;
+  // Open bridge with this thread + all related
+  const allTids = [tid, ...related];
+  log('Related badge: opening bridge with ' + allTids.length + ' threads', 'info');
+  openBridge(allTids);
+});
+log('ThreadEngine v' + APP_VER + ' ready · AI bridge enabled', 'ok');
+</script>
+
+</body>
+</html>
